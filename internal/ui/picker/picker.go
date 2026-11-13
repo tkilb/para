@@ -33,7 +33,7 @@ const (
 	// detailExtra widens the detail column beyond half the box.
 	detailExtra  = 4
 	noMatchLabel = "(no matches)"
-	hint         = "enter select  esc cancel"
+	defaultHint  = "enter select  esc cancel"
 )
 
 var (
@@ -86,6 +86,8 @@ type Model struct {
 	screenHeight int
 	// large makes the box wider and taller, for lists of long paths.
 	large bool
+	// hint, when set, replaces the footer's key hint.
+	hint string
 }
 
 // New returns a picker over items, listed in the given order until the user
@@ -108,6 +110,13 @@ func (m Model) WithScreenHeight(h int) Model {
 // Large makes the picker's box wider and taller than usual.
 func (m Model) Large() Model {
 	m.large = true
+	return m
+}
+
+// WithHint replaces the key hint in the picker's footer, for a picker whose
+// owner handles extra keys.
+func (m Model) WithHint(h string) Model {
+	m.hint = h
 	return m
 }
 
@@ -261,7 +270,10 @@ func (m Model) View(screenWidth, screenHeight int) string {
 			lines = append(lines, m.row(m.matches[i], inner, i == m.cursor))
 		}
 	}
-	footer := panel.Footer{Left: hint, Tint: true}
+	footer := panel.Footer{Left: defaultHint, Tint: true}
+	if m.hint != "" {
+		footer.Left = m.hint
+	}
 	if len(m.matches) > 0 {
 		footer.Right = strings.Join([]string{itoa(m.cursor + 1), itoa(len(m.matches))}, "/")
 	}

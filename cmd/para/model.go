@@ -14,6 +14,7 @@ import (
 	"github.com/tkilb/para/internal/clip"
 	"github.com/tkilb/para/internal/config"
 	"github.com/tkilb/para/internal/gitsync"
+	"github.com/tkilb/para/internal/glossary"
 	"github.com/tkilb/para/internal/links"
 	"github.com/tkilb/para/internal/store"
 	"github.com/tkilb/para/internal/ui/clipform"
@@ -89,6 +90,7 @@ var globalBindings = []statusbar.Binding{
 	{Key: "s", Label: "pin note"},
 	{Key: "B", Label: "notebook"},
 	{Key: "ctrl+f", Label: "find note"},
+	{Key: "ctrl+y", Label: "glossary"},
 	{Key: "tab", Label: "next panel"},
 	{Key: "+", Label: "zoom"},
 	{Key: "u", Label: "undo"},
@@ -527,6 +529,8 @@ func (m model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m = m.openWeb()
 	case "ctrl+t":
 		m, cmd = m.startAppendTemplate()
+	case "ctrl+y":
+		m, cmd = m.openGlossary(glossary.Entry{})
 	case "b":
 		m = m.openDaily(-1)
 	case "t":

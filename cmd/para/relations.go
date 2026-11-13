@@ -25,6 +25,7 @@ const (
 	pickNotebook                       // choose the notebook to open
 	pickFile                           // jump to a note found by name
 	pickAppendTemplate                 // append a template to the note at pickerFor
+	pickGlossary                       // browse the glossary (see glossary.go)
 )
 
 // openReferencePicker lists the notes the shown note could reference: every
@@ -60,6 +61,11 @@ func folderOf(rel string) string {
 
 // pickerKey feeds a message to the open picker and applies its outcome.
 func (m model) pickerKey(msg tea.Msg) (model, tea.Cmd) {
+	if m.pickerOp == pickGlossary {
+		if next, cmd, handled := m.glossaryKey(msg); handled {
+			return next, cmd
+		}
+	}
 	p, cmd, out := m.picker.WithScreenHeight(m.height).Update(msg)
 	m.picker = &p
 	switch out {
@@ -79,6 +85,8 @@ func (m model) pickerKey(msg tea.Msg) (model, tea.Cmd) {
 			return m.askExtractTitle(store.ParseKind(item.Value))
 		case pickAppendTemplate:
 			return m.appendTemplate(m.pickerFor, item.Value), nil
+		case pickGlossary:
+			return m.showGlossaryEntry(parseGlossaryValue(item.Value))
 		}
 		return m.editNote(m.pickerFor, fmt.Sprintf("add reference to %s", item.Value),
 			func(fm *store.Frontmatter) { links.AddReference(fm, item.Value) }), nil
