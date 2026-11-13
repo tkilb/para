@@ -93,7 +93,7 @@ para never edits files other than your notes, so it does not add that line for y
 
 | Key | Panel | What it shows |
 | --- | --- | --- |
-| `1` | **Stickies** | Notes you pinned with `s`. One row (`5 stickies`) until focused, then one row each, up to five. |
+| `1` | **Stickies** | Notes you pinned with `S`. One row (`5 stickies`) until focused, then one row each, up to five. |
 | `2` | **PARA** | Five tabs (Inbox, Projects, Areas, Resources, Archives), each a folder browser. Only the selected tab is spelled out. Inside a folder, the first row is its path. |
 | `3` | **Related** | What the selected note references and what references it, from its `related` property. |
 | `0` | **Content** | The selected note's text, with a cursor line. |
@@ -131,7 +131,8 @@ Add your own kinds, or change how these look, with the `kinds` list in the confi
 | `B` | Choose the notebook to open |
 | `ctrl+f` | Find a note by path (fuzzy). Results are ranked: the whole file name, then names that start with what you typed, then names where it starts a word, then names that contain it, then scattered letters in the name, then matches only in a folder; shorter names first. The folders are drawn grey |
 | `ctrl+/` or `F` | Search text in the notes of the notebook, as grep -i does, limited by two filters above the list: **Space** (All or one of the five PARA folders) and **Dir** (a path inside the space; from the notebook root when the space is All). Both start at the folder PARA shows. `tab` / `shift+tab` move between the query, Space and Dir; in Space, `←` `→` or `space` change it. Type words: type words, and every line holding all of them, exactly and ignoring case, is listed with its note, line and column and a preview of the note beside it. `↑` `↓` move, `pgup` `pgdown` page, `ctrl+d` `ctrl+u` scroll the preview, `enter` opens the note at the line, `esc` cancels |
-| `s` | Pin or unpin the selected note as a sticky |
+| `s` | Open the scratch pad, `_scratch.md` in the notebook root, in `$EDITOR` (always edit mode; the editor creates the file when you save) |
+| `S` | Pin or unpin the selected note as a sticky |
 | `A` | Add Note: add a note in the folder PARA shows |
 | `I` | Import the clipboard, a web page or a file with the agent; on an `IMPORT_` folder, run that import again |
 | `U` | Clip a web page |

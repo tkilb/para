@@ -87,7 +87,8 @@ func (p panelID) cycleIndex() int {
 // the focused panel.
 var globalBindings = []statusbar.Binding{
 	{Key: "0-4", Label: "focus panel"},
-	{Key: "s", Label: "pin note"},
+	{Key: "s", Label: "scratch"},
+	{Key: "S", Label: "pin note"},
 	{Key: "B", Label: "notebook"},
 	{Key: "ctrl+f", Label: "find note"},
 	{Key: "ctrl+y", Label: "glossary"},
@@ -433,6 +434,8 @@ func (m model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case editDoneMsg:
 		return m.finishEdit(msg), tea.ClearScreen
+	case scratchDoneMsg:
+		return m.finishScratch(msg), tea.ClearScreen
 	case lazygitDoneMsg:
 		return m.finishLazygit(msg)
 	case tea.ResumeMsg:
@@ -515,8 +518,10 @@ func (m model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m, cmd = m.importKey()
 	case "B":
 		m, cmd = m.openNotebookPicker()
-	case "s":
+	case "S":
 		m = m.toggleSticky()
+	case "s":
+		m, cmd = m.openScratch()
 	case "ctrl+f":
 		m, cmd = m.openFileFinder()
 	case "ctrl+_", "F":

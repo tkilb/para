@@ -12,7 +12,8 @@ import (
 // helpGlobalBindings are the keys that work whatever panel has focus. Panel
 // switching is movement, so it is under Navigation, as in lazygit.
 var helpGlobalBindings = []statusbar.Binding{
-	{Key: "s", Label: "pin the selected note as a sticky (or unpin it)"},
+	{Key: "s", Label: "open the scratch pad (_scratch.md in the notebook root) in $EDITOR"},
+	{Key: "S", Label: "pin the selected note as a sticky (or unpin it)"},
 	{Key: "ctrl+f", Label: "find a note by name or path anywhere in the notebook (best file name matches first)"},
 	{Key: "ctrl+/ or F", Label: "search text in the notes, grep style, filtered by Space and Dir (tab switches fields; opens the note at the line)"},
 	{Key: "B", Label: "choose the notebook to open (your place in each is remembered)"},
