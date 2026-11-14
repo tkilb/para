@@ -31,8 +31,6 @@ var (
 	ErrNotFound = errors.New("that term is not in the glossary")
 	// ErrEmptyTerm reports a term with no text.
 	ErrEmptyTerm = errors.New("the term is empty")
-	// ErrEmptyDefinition reports a definition with no text.
-	ErrEmptyDefinition = errors.New("the definition is empty")
 	// ErrTooLarge reports a glossary file over the size limit.
 	ErrTooLarge = errors.New("glossary.yaml is too large")
 )
@@ -120,14 +118,12 @@ func Delete(root string, e Entry) error {
 	})
 }
 
-// clean trims both texts and rejects empty ones.
+// clean trims both texts and rejects an empty term. A blank definition is
+// allowed and stored as an empty string.
 func clean(e Entry) (Entry, error) {
 	e.Term, e.Definition = strings.TrimSpace(e.Term), strings.TrimSpace(e.Definition)
-	switch {
-	case e.Term == "":
+	if e.Term == "" {
 		return e, ErrEmptyTerm
-	case e.Definition == "":
-		return e, ErrEmptyDefinition
 	}
 	return e, nil
 }

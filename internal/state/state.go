@@ -26,7 +26,7 @@ const (
 	dbFile        = "state.db"
 	dirPerm       = 0o700
 	filePerm      = 0o600
-	schemaVersion = 2
+	schemaVersion = 3
 	busyTimeoutMS = 5000
 )
 
@@ -144,6 +144,11 @@ CREATE TABLE IF NOT EXISTS sticky (
 	pos      INTEGER NOT NULL,
 	uid      TEXT NOT NULL,
 	PRIMARY KEY (notebook, pos)
+);
+CREATE TABLE IF NOT EXISTS mark (
+	notebook TEXT NOT NULL,
+	uid      TEXT NOT NULL,
+	PRIMARY KEY (notebook, uid)
 );
 PRAGMA user_version = %d;`, schemaVersion))
 	if err != nil {
@@ -294,7 +299,11 @@ func (d *DB) SaveStickies(path string, uids []string) error {
 
 // cleanStickies drops blank, oversized and repeated uids, keeps the order and
 // stops at MaxStickies.
-func cleanStickies(uids []string) []string {
+func cleanStickies(uids []string) []string { return cleanUIDs(uids, MaxStickies) }
+
+// cleanUIDs drops blank, oversized and repeated uids, keeps the order and
+// stops at limit.
+func cleanUIDs(uids []string, limit int) []string {
 	seen := make(map[string]bool, len(uids))
 	var out []string
 	for _, uid := range uids {
@@ -302,7 +311,7 @@ func cleanStickies(uids []string) []string {
 			continue
 		}
 		seen[uid] = true
-		if out = append(out, uid); len(out) == MaxStickies {
+		if out = append(out, uid); len(out) == limit {
 			break
 		}
 	}

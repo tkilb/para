@@ -50,6 +50,9 @@ var (
 type Item struct {
 	Label, Detail, Value string
 	Name                 string
+	// Preview is the text shown in the preview pane while the item is
+	// highlighted (see WithPreview).
+	Preview string
 	// Color, when set, draws the label in that color (except on the
 	// highlighted row, which keeps the selection colors).
 	Color lipgloss.Color
@@ -88,6 +91,10 @@ type Model struct {
 	large bool
 	// hint, when set, replaces the footer's key hint.
 	hint string
+	// preview shows the highlighted item's Preview under the list, in a
+	// pane titled previewName.
+	preview     bool
+	previewName string
 }
 
 // New returns a picker over items, listed in the given order until the user
@@ -122,6 +129,10 @@ func (m Model) WithHint(h string) Model {
 
 // pageRows is how many list rows fit for a terminal screenHeight rows tall.
 func (m Model) pageRows(screenHeight int) int {
+	if m.preview {
+		list, _ := stackedRows(screenHeight)
+		return list
+	}
 	limit := maxListRows
 	if m.large {
 		limit = largeMaxListRows
@@ -259,6 +270,11 @@ func (m Model) View(screenWidth, screenHeight int) string {
 	boxWidth := min(max(screenWidth-boxMargin, minBoxWidth), widest)
 	inner := boxWidth - 2
 	rows := min(m.pageRows(screenHeight), max(len(m.matches), 1))
+	if m.preview {
+		// A fixed height keeps the preview pane from jumping as the list
+		// narrows.
+		rows = m.pageRows(screenHeight)
+	}
 
 	m.field.Width = max(inner-lipgloss.Width(m.field.Prompt)-1, 1)
 	lines := []string{m.field.View()}
@@ -270,14 +286,30 @@ func (m Model) View(screenWidth, screenHeight int) string {
 			lines = append(lines, m.row(m.matches[i], inner, i == m.cursor))
 		}
 	}
-	footer := panel.Footer{Left: defaultHint, Tint: true}
+	hint := defaultHint
 	if m.hint != "" {
-		footer.Left = m.hint
+		hint = m.hint
 	}
+	footer := panel.Footer{Left: hint, Tint: true}
 	if len(m.matches) > 0 {
 		footer.Right = strings.Join([]string{itoa(m.cursor + 1), itoa(len(m.matches))}, "/")
 	}
-	return panel.Frame(m.title, strings.Join(lines, "\n"), inner, len(lines), true, footer)
+	if !m.preview {
+		return panel.Frame(m.title, strings.Join(lines, "\n"), inner, len(lines), true, footer)
+	}
+	for len(lines) < rows+1 {
+		lines = append(lines, "")
+	}
+	list := panel.Frame(m.title, strings.Join(lines, "\n"), inner, len(lines), true, footer)
+	_, previewRows := stackedRows(screenHeight)
+	return lipgloss.JoinVertical(lipgloss.Left, list, "", m.previewPane(inner, previewRows))
+}
+
+// WithPreview shows the highlighted item's Preview in a pane under the list,
+// titled name.
+func (m Model) WithPreview(name string) Model {
+	m.preview, m.previewName = true, name
+	return m
 }
 
 // row draws one item: its label with the matched characters picked out, and

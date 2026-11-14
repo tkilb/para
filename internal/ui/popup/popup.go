@@ -88,7 +88,6 @@ const (
 	dismissHint = "press any key to dismiss"
 	confirmHint = "(y/enter) confirm  (n/esc) cancel"
 	inputHint   = "(enter) accept  (esc) cancel"
-	menuHint    = "(↑/↓) select  (enter) pick  (esc) cancel"
 
 	// boxChrome is the columns a box spends on its border and padding.
 	boxChrome = 4
@@ -107,10 +106,6 @@ var (
 	// hard or impossible to undo.
 	dangerColor = Error.color()
 	inputColor  = lipgloss.Color("39")
-	// menuKeyColor is the cyan of the key column in the help popup.
-	menuKeyColor = lipgloss.Color("6")
-	// menuSelectedColor is the highlight of the chosen row, as in a panel.
-	menuSelectedColor = lipgloss.Color("4")
 )
 
 // Box draws msg as a bordered box with a title colored per severity and a
@@ -138,30 +133,6 @@ func InputBox(title, label, field string, screenWidth int) string {
 		body = label + "\n" + field
 	}
 	return renderBox(title, inputColor, inputHint, body, screenWidth)
-}
-
-// MenuItem is one choice of a MenuBox: the key that picks it and its label.
-type MenuItem struct {
-	Key, Label string
-}
-
-// MenuBox draws a box listing keys and what they do, for a menu where the
-// next key press chooses, or the arrows highlight a row (cursor is its
-// index) and enter picks it.
-func MenuBox(title string, items []MenuItem, cursor, screenWidth int) string {
-	keyStyle := lipgloss.NewStyle().Bold(true).Foreground(menuKeyColor)
-	selStyle := lipgloss.NewStyle().Bold(true).Background(menuSelectedColor)
-	rowWidth := boxWidth(screenWidth) - boxPadding
-	lines := make([]string, len(items))
-	for i, it := range items {
-		if i == cursor {
-			text := it.Key + "  " + it.Label
-			lines[i] = selStyle.Render(text + strings.Repeat(" ", max(rowWidth-ansi.StringWidth(text), 0)))
-			continue
-		}
-		lines[i] = keyStyle.Render(it.Key) + "  " + it.Label
-	}
-	return renderBox(title, inputColor, menuHint, strings.Join(lines, "\n"), screenWidth)
 }
 
 // FieldWidth is the width to give a text field shown in an InputBox on a

@@ -7,30 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMoveDestination(t *testing.T) {
-	tests := []struct {
-		name, rel, tab, want string
-	}{
-		{"to a tab root", "inbox/a.md", "projects", "projects/a.md"},
-		{"from a subfolder lands at the root", "areas/deep/er/a.md", "resources", "resources/a.md"},
-		{"to the inbox", "projects/a.md", "inbox", "inbox/a.md"},
-		{"to the archives", "projects/a.md", "archives", "archives/a.md"},
-		{"a daily goes to archives/_daily", "inbox/_daily/2026-10-30.md", "archives", "archives/_daily/2026-10-30.md"},
-		{"a daily elsewhere is plain", "inbox/_daily/2026-10-30.md", "projects", "projects/2026-10-30.md"},
-		{"a daily-looking name outside inbox/_daily is plain", "projects/2026-10-30.md", "archives", "archives/2026-10-30.md"},
-		{"a non-date note in inbox/_daily is plain", "inbox/_daily/notes.md", "archives", "archives/notes.md"},
-		{"daily extension case", "inbox/_daily/2026-10-30.MD", "archives", "archives/_daily/2026-10-30.MD"},
-		{"a bad date is not a daily", "inbox/_daily/2026-13-45.md", "archives", "archives/2026-13-45.md"},
-		{"unknown tab", "inbox/a.md", "elsewhere", ""},
-		{"empty", "", "projects", ""},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, MoveDestination(tt.rel, tt.tab))
-		})
-	}
-}
-
 func TestDailyDate(t *testing.T) {
 	tests := []struct {
 		rel  string

@@ -137,7 +137,7 @@ Add your own kinds, or change how these look, with the `kinds` list in the confi
 | `I` | Import the clipboard, a web page or a file with the agent; on an `IMPORT_` folder, run that import again |
 | `U` | Clip a web page |
 | `o` | Open the web address in the selected note's `source` in the browser |
-| `ctrl+y` | Glossary: fuzzy-pick a term from `glossary.yaml` in the notebook root (listed alphabetically by term, ignoring case, whatever order the file has), a YAML mapping of term to definition (for example `PARA: Projects, Areas, Resources, Archive`). A term with several meanings, such as a three letter acronym, holds a list (`NAM:` then `- National Account Manager` and `- Not Actual Mileage` on indented lines) and shows as one row per meaning; adding a term that exists adds another meaning, and only an identical term and definition is refused. `enter` shows the whole definition; `ctrl+n` adds a term, `ctrl+e` edits the highlighted one and `ctrl+x` deletes it (that meaning only, after a confirmation; `u` does not undo it). A new or edited term asks for the term, then the definition; a definition with line breaks shows on one line while edited. Comments and the order of the other terms in the file are kept. A missing file is an empty glossary, created by the first add; a file that is not a mapping of text or lists of text is left untouched and reported |
+| `ctrl+y` | Glossary: fuzzy-pick a term from `glossary.yaml` in the notebook root (listed alphabetically by term, ignoring case, whatever order the file has), a YAML mapping of term to definition (for example `PARA: Projects, Areas, Resources, Archive`). A term with several meanings, such as a three letter acronym, holds a list (`NAM:` then `- National Account Manager` and `- Not Actual Mileage` on indented lines) and shows as one row per meaning; adding a term that exists adds another meaning, and only an identical term and definition is refused. `enter` shows the whole definition; `ctrl+n` adds a term, `ctrl+e` edits the highlighted one and `ctrl+x` deletes it (that meaning only, after a confirmation; `u` does not undo it). A new or edited term opens `$EDITOR` on a short buffer, as lazytask does: a `Term:` line, then `Definition:` with the text after it, which may run over as many lines as you like. Save and quit to store it; an empty definition is stored as blank, a buffer with no term is refused, and an editor that exits with an error cancels the edit. A Definition pane under the list shows the whole wrapped definition of the highlighted term, with the first line break doubled so the first line stands apart. Comments and the order of the other terms in the file are kept. A missing file is an empty glossary, created by the first add; a file that is not a mapping of text or lists of text is left untouched and reported |
 | `ctrl+t` | Append a template to the end of the selected note (choose it in a picker; `u` undoes it) |
 | `b` / `t` / `T` | Open yesterday's / today's / tomorrow's daily note |
 | `u` / `ctrl+r` | Undo / redo |
@@ -165,7 +165,7 @@ In every picker, type to narrow the list (words separated by spaces must all mat
 | `a` | New note (end the name with `/` for a folder) |
 | `r` | Rename, updating references in other notes |
 | `K` | Set the kind |
-| `m` | Move to a tab: `i` Inbox, `p` Projects, `a` Areas, `r` Resources, `A` Archives |
+| `m` | Mark the note with an orange bullet in the first column of its row (a selected, yanked or cut row shows its bar instead), or clear the mark. Notes only. A mark follows the note's `uid` (one is added to the note when it has none) and is kept in the state database, per notebook |
 | `e` | Edit in `$EDITOR` |
 | `/` then `n` / `N` | Search names, then step through the matches |
 | `.` | Show hidden files |
@@ -211,7 +211,7 @@ It saves into the notebook the interface would open. Run `para add -h` for the f
 
 ## Daily notes
 
-`b`, `t` and `T` open yesterday's, today's and tomorrow's note in `inbox/_daily/`, creating an empty one when the day has none. Digest a daily note (extract the useful lines, then archive it with `m` `A`, which moves it to `archives/_daily/`). Archived daily notes are temporary: when a notebook is opened, those older than `retention.daily` are **permanently deleted** and the count is reported. A daily note still in `inbox/_daily/` past that age is only shown in orange, never deleted.
+`b`, `t` and `T` open yesterday's, today's and tomorrow's note in `inbox/_daily/`, creating an empty one when the day has none. Digest a daily note (extract the useful lines, then archive it by cutting it with `x` and pasting it into `archives/_daily/` with `p`). Archived daily notes are temporary: when a notebook is opened, those older than `retention.daily` are **permanently deleted** and the count is reported. A daily note still in `inbox/_daily/` past that age is only shown in orange, never deleted.
 
 ## Links, undo and safety
 

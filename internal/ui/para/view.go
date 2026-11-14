@@ -68,6 +68,9 @@ const (
 	// markerBar is drawn in the first column of a selected row.
 	markerBar   = "▎"
 	markerWidth = 1
+	// bullet is drawn in the first column of a marked note's row, where the
+	// bar goes. A selected, yanked or cut row shows its bar instead.
+	bullet = "•"
 )
 
 // View renders the panel into outerWidth x outerHeight, border included.
@@ -176,24 +179,29 @@ func (m Model) body(t tabState, width, height int, focused bool) string {
 	start, end := panel.ScrollWindow(t.cursor, len(t.rows), height)
 	lines := make([]string, 0, end-start)
 	for i := start; i < end; i++ {
-		lines = append(lines, renderRow(t.rows[i], width, i == t.cursor && focused, m.markOf(t, t.rows[i]), t.search))
+		lines = append(lines, renderRow(t.rows[i], width, i == t.cursor && focused, m.markOf(t, t.rows[i]), m.marks[t.rows[i].uid], t.search))
 	}
 	return strings.Join(lines, "\n")
 }
 
-// renderRow draws one row: a marker column, a kind badge (blank for
+// renderRow draws one row: a marker column (the bar, or the bullet of a
+// marked note), a kind badge (blank for
 // directories), the name, and for directories an item count right-aligned.
-// cursor highlights the row; mk draws the left-edge bar; query, when the row
-// matches it, highlights the matching text in the name.
-func renderRow(r row, width int, cursor bool, mk mark, query string) string {
+// cursor highlights the row; mk draws the left-edge bar; marked draws the
+// bullet when there is no bar; query, when the row matches it, highlights the matching text in the
+// name.
+func renderRow(r row, width int, cursor bool, mk mark, marked bool, query string) string {
 	if !matches(r.entry, query) {
 		query = ""
 	}
-	bar := " "
-	if mk != markNone {
+	bar, barColor := " ", markerColors[mk]
+	switch {
+	case mk != markNone:
 		bar = markerBar
+	case marked:
+		bar, barColor = bullet, overdueColor
 	}
-	markerStyle := lipgloss.NewStyle().Foreground(markerColors[mk])
+	markerStyle := lipgloss.NewStyle().Foreground(barColor)
 	width -= markerWidth
 
 	badge, badgeColor := strings.Repeat(" ", badgeWidth), lipgloss.Color("")
@@ -222,7 +230,11 @@ func renderRow(r row, width int, cursor bool, mk mark, query string) string {
 		if r.overdue {
 			nameSel = selStyle.Foreground(overdueColor)
 		}
-		return selStyle.Foreground(markerColors[mk]).Render(bar) +
+		barSel := selStyle.Foreground(barColor)
+		if mk == markNone && marked {
+			barSel = nameSel // the bullet matches the name's color
+		}
+		return barSel.Render(bar) +
 			selStyle.Render(badge+" ") + highlight(name, query, nameSel, true) + selStyle.Render(gap) + countSel.Render(right)
 	}
 	nameStyle := lipgloss.NewStyle()

@@ -164,6 +164,8 @@ type model struct {
 	// notes pinned in the open notebook, in the order pinned.
 	stickies   stickies.Model
 	stickyUIDs []string
+	// markUIDs are the uids of the notes marked with a bullet in PARA.
+	markUIDs []string
 	// notebooks are the configured notebooks and activeNotebook the index of
 	// the open one; purged holds the notebook roots whose old dailies were
 	// removed this session, and retentionDays is the daily retention.
@@ -232,8 +234,6 @@ type model struct {
 	// form is the open quick-capture form; formSave handles its texts.
 	form     *noteform.Model
 	formSave func(model, noteform.Values) (model, tea.Cmd)
-	// menu is the open choose-by-key menu, if any.
-	menu *menu
 	// question is a yes/no question owned by the root model, with what to do
 	// on yes (the para panel's own questions use pending instead).
 	question *question
@@ -434,6 +434,8 @@ func (m model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case editDoneMsg:
 		return m.finishEdit(msg), tea.ClearScreen
+	case glossaryEditDoneMsg:
+		return m.finishGlossaryEdit(msg)
 	case scratchDoneMsg:
 		return m.finishScratch(msg), tea.ClearScreen
 	case lazygitDoneMsg:
@@ -491,8 +493,6 @@ func (m model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m.formKey(msg)
 		case m.clipForm != nil:
 			return m.clipFormKey(msg)
-		case m.menu != nil:
-			return m.menuKey(key)
 		case m.question != nil:
 			return m.answerQuestion(key)
 		case m.picker != nil:

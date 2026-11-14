@@ -96,8 +96,8 @@ func (m model) apply(eff para.Effect) (model, tea.Cmd) {
 
 	var cmd tea.Cmd
 	switch {
-	case eff.Move != "":
-		m = m.openMoveMenu(eff.Move)
+	case eff.Mark != "":
+		m = m.toggleMark(eff.Mark)
 	case eff.SetKind != nil:
 		m, cmd = m.openKindPicker(eff.SetKind)
 	case eff.Edit != "":
@@ -246,8 +246,6 @@ func (m model) overlayModals(view string) string {
 		view = popup.Overlay(view, m.picker.View(m.width, m.height), m.width, m.height)
 	case m.grep != nil:
 		view = popup.Overlay(view, m.grep.View(m.width, m.height), m.width, m.height)
-	case m.menu != nil:
-		view = popup.Overlay(view, popup.MenuBox(m.menu.title, m.menu.items, m.menu.cursor, m.width), m.width, m.height)
 	case m.question != nil:
 		view = popup.Overlay(view, popup.ConfirmBox(m.question.prompt, m.width), m.width, m.height)
 	case m.input != nil && m.input.inline:

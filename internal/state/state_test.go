@@ -1,8 +1,10 @@
 package state
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -213,4 +215,72 @@ func TestOpenUpgradesAVersionOneDatabase(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "/a", s.Notebook, "what was saved stays")
 	require.NoError(t, db.SaveStickies("/a", []string{"u1"}))
+}
+
+func TestMarksRoundTripPerNotebook(t *testing.T) {
+	db, _ := open(t)
+	got, err := db.LoadMarks("/a")
+	require.NoError(t, err)
+	assert.Empty(t, got)
+
+	require.NoError(t, db.SaveMarks("/a", []string{"u3", "u1", "u2"}))
+	require.NoError(t, db.SaveMarks("/b", []string{"x"}))
+
+	got, err = db.LoadMarks("/a")
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{"u3", "u1", "u2"}, got)
+	got, err = db.LoadMarks("/b")
+	require.NoError(t, err)
+	assert.Equal(t, []string{"x"}, got)
+}
+
+func TestSaveMarksReplacesAndCleans(t *testing.T) {
+	db, _ := open(t)
+	require.NoError(t, db.SaveMarks("/a", []string{"u1", "u2"}))
+	require.NoError(t, db.SaveMarks("/a", []string{"u2", "", "u2", "u9"}))
+	got, err := db.LoadMarks("/a")
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{"u2", "u9"}, got, "blank and repeated uids are dropped")
+
+	require.NoError(t, db.SaveMarks("/a", nil))
+	got, err = db.LoadMarks("/a")
+	require.NoError(t, err)
+	assert.Empty(t, got)
+}
+
+func TestSaveMarksBoundsWhatIsStored(t *testing.T) {
+	db, _ := open(t)
+	many := make([]string, MaxMarks+10)
+	for i := range many {
+		many[i] = fmt.Sprintf("u%d", i)
+	}
+	require.NoError(t, db.SaveMarks("/a", many))
+	got, err := db.LoadMarks("/a")
+	require.NoError(t, err)
+	assert.Len(t, got, MaxMarks)
+
+	long := strings.Repeat("x", maxUIDLen+1)
+	require.NoError(t, db.SaveMarks("/a", []string{long, "ok"}))
+	got, err = db.LoadMarks("/a")
+	require.NoError(t, err)
+	assert.Equal(t, []string{"ok"}, got, "an absurdly long uid is dropped")
+}
+
+func TestOpenUpgradesAVersionTwoDatabase(t *testing.T) {
+	db, dir := open(t)
+	require.NoError(t, db.SaveStickies("/a", []string{"u1"}))
+	_, err := db.sql.Exec(`DROP TABLE mark; PRAGMA user_version = 2`)
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+
+	db, err = Open(dir)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
+	st, err := db.LoadStickies("/a")
+	require.NoError(t, err)
+	assert.Equal(t, []string{"u1"}, st, "what was saved stays")
+	require.NoError(t, db.SaveMarks("/a", []string{"m1"}))
+	got, err := db.LoadMarks("/a")
+	require.NoError(t, err)
+	assert.Equal(t, []string{"m1"}, got)
 }

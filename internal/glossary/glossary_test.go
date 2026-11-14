@@ -101,9 +101,22 @@ func TestAddSecondMeaningMakesAList(t *testing.T) {
 func TestInvalidTerms(t *testing.T) {
 	root := t.TempDir()
 	assert.ErrorIs(t, Add(root, "   ", "x"), ErrEmptyTerm)
-	assert.ErrorIs(t, Add(root, "term", "  "), ErrEmptyDefinition)
 	_, err := os.Stat(filepath.Join(root, FileName))
 	assert.True(t, os.IsNotExist(err), "a rejected add must not create the file")
+}
+
+func TestABlankDefinitionIsStored(t *testing.T) {
+	root := t.TempDir()
+	require.NoError(t, Add(root, "term", "  \n "))
+	got, err := Load(root)
+	require.NoError(t, err)
+	assert.Equal(t, []Entry{{"term", ""}}, got)
+
+	require.NoError(t, Replace(root, Entry{"term", ""}, Entry{"term", "now defined"}))
+	require.NoError(t, Replace(root, Entry{"term", "now defined"}, Entry{"term", "  "}))
+	got, err = Load(root)
+	require.NoError(t, err)
+	assert.Equal(t, []Entry{{"term", ""}}, got, "editing to blank keeps the term")
 }
 
 func TestReplace(t *testing.T) {

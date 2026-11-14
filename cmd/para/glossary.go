@@ -59,16 +59,17 @@ func (m model) openGlossary(at glossary.Entry) (model, tea.Cmd) {
 	cursor := 0
 	for i, e := range entries {
 		items[i] = picker.Item{
-			Label:  textsafe.Sanitize(e.Term),
-			Detail: firstLine(textsafe.Sanitize(e.Definition)),
-			Value:  glossaryValue(e),
+			Label:   textsafe.Sanitize(e.Term),
+			Detail:  firstLine(textsafe.Sanitize(e.Definition)),
+			Preview: glossary.Spaced(textsafe.Sanitize(e.Definition)),
+			Value:   glossaryValue(e),
 		}
 		if e == at {
 			cursor = i
 		}
 	}
 	p, cmd := picker.New(glossaryTitle, items)
-	p = p.Large().WithHint(glossaryHint).WithCursor(cursor)
+	p = p.Large().WithPreview("Definition").WithHint(glossaryHint).WithCursor(cursor)
 	m.picker, m.pickerOp = &p, pickGlossary
 	return m, cmd
 }
@@ -114,25 +115,12 @@ func (m model) showGlossaryEntry(e glossary.Entry) (model, tea.Cmd) {
 	return m.openGlossary(e)
 }
 
-// askGlossaryTerm asks for a term's name, then its definition, then saves
-// them. With an old entry (old.Term not empty) it replaces that entry; with
-// none it adds a new one, which is another meaning when the term exists. The
-// old texts pre-fill the fields. A definition with line breaks is shown on
-// one line while being edited.
+// askGlossaryTerm opens $EDITOR on a buffer holding the term and its
+// definition (see glossary.Buffer). With an old entry (old.Term not empty) it
+// replaces that entry, which pre-fills the buffer; with none it adds a new
+// one, which is another meaning when the term exists.
 func (m model) askGlossaryTerm(old glossary.Entry) (model, tea.Cmd) {
-	title := "Glossary: new term"
-	if old.Term != "" {
-		title = "Glossary: edit term"
-	}
-	return m.openRootInput(title, old.Term, func(m model, term string) (model, tea.Cmd) {
-		if strings.TrimSpace(term) == "" {
-			return m.glossaryFailed("saving the term", glossary.ErrEmptyTerm), nil
-		}
-		return m.openRootInput("Definition of "+strings.TrimSpace(term), old.Definition,
-			func(m model, definition string) (model, tea.Cmd) {
-				return m.saveGlossaryEntry(old, glossary.Entry{Term: term, Definition: definition})
-			})
-	})
+	return m.editGlossaryBuffer(old)
 }
 
 // saveGlossaryEntry writes the entry (replacing old, when it names one) and

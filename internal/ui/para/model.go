@@ -30,6 +30,8 @@ var tabDefs = []tabDef{
 type row struct {
 	entry store.Entry
 	kind  store.Kind // notes only
+	// uid is the note's uid property, "" for a folder or a note without one.
+	uid string
 	// overdue marks a daily note that should have been archived by now.
 	overdue bool
 }
@@ -114,6 +116,9 @@ type Model struct {
 	// row is marked overdue (zero never marks), measured against now.
 	retentionDays int
 	now           func() time.Time
+	// marks holds the uids of the marked notes; their rows show a bullet. It
+	// is replaced, never mutated.
+	marks map[string]bool
 }
 
 // New returns a panel over s with the first tab loaded.
@@ -126,6 +131,16 @@ func New(s store.Store) Model {
 func (m Model) WithRetention(days int, now func() time.Time) Model {
 	m.retentionDays, m.now = days, now
 	return m.Reload()
+}
+
+// WithMarks sets which notes, by uid, show a bullet. No reload is needed:
+// the rows already know their uids.
+func (m Model) WithMarks(uids []string) Model {
+	m.marks = make(map[string]bool, len(uids))
+	for _, uid := range uids {
+		m.marks[uid] = true
+	}
+	return m
 }
 
 // Resize sets the number of rows inside the panel's border.
@@ -155,6 +170,9 @@ func (m Model) load(i int) Model {
 			rows[j].overdue = m.now != nil && store.DailyOverdue(e.Rel, m.retentionDays, m.now())
 			if n, err := m.store.ReadNote(e.Rel); err == nil {
 				rows[j].kind = n.Kind
+				if v := n.Frontmatter.Get("uid"); v != nil {
+					rows[j].uid = strings.TrimSpace(v.Value)
+				}
 			}
 		}
 	}
@@ -225,7 +243,7 @@ func (m Model) Update(msg tea.KeyMsg) (Model, Effect) {
 		return m.askKind()
 	case "m":
 		if e, ok := m.SelectedNote(); ok {
-			return m, Effect{Move: e.Rel}
+			return m, Effect{Mark: e.Rel}
 		}
 		return m, Effect{}
 	case "e":
