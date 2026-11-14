@@ -12,7 +12,7 @@ import (
 func TestCountNotes(t *testing.T) {
 	root := t.TempDir()
 	files := []string{
-		"inbox/a.md", "inbox/daily/2026-01-01.md", "projects/p/b.md", "areas/c.MD",
+		"inbox/a.md", "inbox/_daily/2026-01-01.md", "projects/p/b.md", "areas/c.MD",
 		"resources/d.md", "archives/e.md",
 		"inbox/readme.txt",        // not a note
 		"other/f.md",              // outside the PARA folders

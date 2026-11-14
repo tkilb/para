@@ -92,7 +92,7 @@ func TestFindImportFolder(t *testing.T) {
 		{"after being moved into PARA", "projects/alpha/IMPORT_2026-11-03_Standup/_source.md", "projects/alpha/IMPORT_2026-11-03_Standup", true},
 		{"the nearest one wins", "inbox/import_a/import_b/x.md", "inbox/import_a/import_b", true},
 		{"an ordinary note", "inbox/Note.md", "", false},
-		{"an ordinary folder", "inbox/daily", "", false},
+		{"an ordinary folder", "inbox/_daily", "", false},
 		{"a name that only starts like it", "inbox/important/x.md", "", false},
 		{"the old lower case prefix", "inbox/import_2026-11-03_Standup/x.md", "inbox/import_2026-11-03_Standup", true},
 		{"the prefix inside a name", "inbox/my_import_x/x.md", "", false},

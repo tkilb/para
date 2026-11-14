@@ -34,11 +34,11 @@ func names(entries []Entry) []string {
 
 func TestListSortsDirsFirstThenByName(t *testing.T) {
 	root, _ := newRoot(t)
-	writeTree(t, root, "inbox/zebra.md", "inbox/Apple.md", "inbox/banana.md", "inbox/daily/", "inbox/Archive/", "inbox/beta/")
+	writeTree(t, root, "inbox/zebra.md", "inbox/Apple.md", "inbox/banana.md", "inbox/_daily/", "inbox/Archive/", "inbox/beta/")
 
 	got, err := NewMarkdown(root).List("inbox", ListOptions{})
 	require.NoError(t, err)
-	assert.Equal(t, []string{"Archive", "beta", "daily", "Apple.md", "banana.md", "zebra.md"}, names(got))
+	assert.Equal(t, []string{"_daily", "Archive", "beta", "Apple.md", "banana.md", "zebra.md"}, names(got))
 }
 
 func TestListFiltersFiles(t *testing.T) {
@@ -92,7 +92,7 @@ func TestListMissingDirectoryIsEmpty(t *testing.T) {
 	root, _ := newRoot(t)
 	s := NewMarkdown(root)
 
-	for _, dir := range []string{"archives", "inbox/daily", "a/b/c"} {
+	for _, dir := range []string{"archives", "inbox/_daily", "a/b/c"} {
 		got, err := s.List(dir, ListOptions{})
 		require.NoError(t, err, dir)
 		assert.Empty(t, got, dir)

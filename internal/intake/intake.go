@@ -29,7 +29,7 @@ const (
 
 	inboxDir     = "inbox"
 	archivesDir  = "archives"
-	dailyDir     = "daily"
+	dailyDir     = "_daily"
 	dayLayout    = "2006-01-02"
 	noteExt      = ".md"
 	maxNameTries = 1000
@@ -199,8 +199,8 @@ func originLink(rel string) string {
 }
 
 // Daily returns the daily note for the day of t: the dated note
-// (YYYY-MM-DD.md) in inbox/daily, or else the archived one in archives/daily.
-// When neither exists, an empty inbox/daily note with a uid, a title, a date
+// (YYYY-MM-DD.md) in inbox/_daily, or else the archived one in archives/_daily.
+// When neither exists, an empty inbox/_daily note with a uid, a title, a date
 // and no kind is created, and Result.Action undoes that.
 func Daily(s store.Store, t time.Time) (Result, error) {
 	return DailyFrom(s, t, nil)

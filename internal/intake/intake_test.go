@@ -216,7 +216,7 @@ func TestExtractFromAnOrdinaryNoteLinksBackToIt(t *testing.T) {
 
 func TestExtractFromADailyNoteDoesNotLinkBack(t *testing.T) {
 	root, s := newStore(t)
-	for _, origin := range []string{"inbox/daily/2026-10-29.md", "archives/daily/2026-10-29.md"} {
+	for _, origin := range []string{"inbox/_daily/2026-10-29.md", "archives/_daily/2026-10-29.md"} {
 		res, err := Extract(s, now, store.KindIdea, origin, "From "+filepath.Dir(origin), "a thought")
 		require.NoError(t, err)
 		data, _ := os.ReadFile(filepath.Join(root, res.Rel))
@@ -262,7 +262,7 @@ func TestDailyCreatesTheNoteForADay(t *testing.T) {
 
 	res, err := Daily(s, tomorrow)
 	require.NoError(t, err)
-	assert.Equal(t, "inbox/daily/2026-10-31.md", res.Rel)
+	assert.Equal(t, "inbox/_daily/2026-10-31.md", res.Rel)
 	assert.False(t, res.Existed)
 
 	data, err := os.ReadFile(filepath.Join(root, res.Rel))
@@ -279,13 +279,13 @@ func TestDailyCreatesTheNoteForADay(t *testing.T) {
 
 func TestDailyKeepsAnExistingNote(t *testing.T) {
 	root, s := newStore(t)
-	path := filepath.Join(root, "inbox", "daily", "2026-10-30.md")
+	path := filepath.Join(root, "inbox", "_daily", "2026-10-30.md")
 	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
 	require.NoError(t, os.WriteFile(path, []byte("mine\n"), 0o644))
 
 	res, err := Daily(s, now)
 	require.NoError(t, err)
-	assert.Equal(t, "inbox/daily/2026-10-30.md", res.Rel)
+	assert.Equal(t, "inbox/_daily/2026-10-30.md", res.Rel)
 	assert.True(t, res.Existed)
 	got, _ := os.ReadFile(path)
 	assert.Equal(t, "mine\n", string(got), "left untouched")
@@ -293,15 +293,15 @@ func TestDailyKeepsAnExistingNote(t *testing.T) {
 
 func TestDailyFindsAnArchivedNoteInsteadOfMakingANewOne(t *testing.T) {
 	root, s := newStore(t)
-	path := filepath.Join(root, "archives", "daily", "2026-10-29.md")
+	path := filepath.Join(root, "archives", "_daily", "2026-10-29.md")
 	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
 	require.NoError(t, os.WriteFile(path, []byte("old\n"), 0o644))
 
 	res, err := Daily(s, now.AddDate(0, 0, -1))
 	require.NoError(t, err)
-	assert.Equal(t, "archives/daily/2026-10-29.md", res.Rel)
+	assert.Equal(t, "archives/_daily/2026-10-29.md", res.Rel)
 	assert.True(t, res.Existed)
-	assert.NoFileExists(t, filepath.Join(root, "inbox", "daily", "2026-10-29.md"))
+	assert.NoFileExists(t, filepath.Join(root, "inbox", "_daily", "2026-10-29.md"))
 }
 
 func mustURL(t *testing.T, raw string) *url.URL {
@@ -412,7 +412,7 @@ func TestDailyFromATemplateFillsInTheDay(t *testing.T) {
 
 	res, err := DailyFrom(s, tomorrow, []byte(dailyTemplate))
 	require.NoError(t, err)
-	assert.Equal(t, "inbox/daily/2026-10-31.md", res.Rel)
+	assert.Equal(t, "inbox/_daily/2026-10-31.md", res.Rel)
 	assert.False(t, res.Existed)
 
 	data, err := os.ReadFile(filepath.Join(root, res.Rel))
@@ -448,5 +448,5 @@ func TestDailyFromAnUnreadableTemplateCreatesNothing(t *testing.T) {
 	root, s := newStore(t)
 	_, err := DailyFrom(s, now, []byte("---\nkey: [oops\n---\nbody"))
 	assert.ErrorIs(t, err, store.ErrFrontmatterInvalid)
-	assert.NoFileExists(t, filepath.Join(root, "inbox/daily", now.Format("2006-01-02")+".md"))
+	assert.NoFileExists(t, filepath.Join(root, "inbox/_daily", now.Format("2006-01-02")+".md"))
 }

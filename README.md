@@ -68,12 +68,12 @@ A notebook needs no particular layout. These folders are used and created when f
 
 ```
 inbox/          new material
-  daily/        daily notes (YYYY-MM-DD.md)
+  _daily/       daily notes (YYYY-MM-DD.md)
 projects/
 areas/
 resources/
 archives/
-  daily/        archived daily notes
+  _daily/       archived daily notes
 .para/      hidden: the trash (see Syncing)
 ```
 
@@ -211,7 +211,7 @@ It saves into the notebook the interface would open. Run `para add -h` for the f
 
 ## Daily notes
 
-`b`, `t` and `T` open yesterday's, today's and tomorrow's note in `inbox/daily/`, creating an empty one when the day has none. Digest a daily note (extract the useful lines, then archive it with `m` `A`, which moves it to `archives/daily/`). Archived daily notes are temporary: when a notebook is opened, those older than `retention.daily` are **permanently deleted** and the count is reported. A daily note still in `inbox/daily/` past that age is only shown in orange, never deleted.
+`b`, `t` and `T` open yesterday's, today's and tomorrow's note in `inbox/_daily/`, creating an empty one when the day has none. Digest a daily note (extract the useful lines, then archive it with `m` `A`, which moves it to `archives/_daily/`). Archived daily notes are temporary: when a notebook is opened, those older than `retention.daily` are **permanently deleted** and the count is reported. A daily note still in `inbox/_daily/` past that age is only shown in orange, never deleted.
 
 ## Links, undo and safety
 

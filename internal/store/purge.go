@@ -13,7 +13,7 @@ import (
 var ErrPurgeIncomplete = errors.New("some old daily notes could not be removed")
 
 // PurgeDailies permanently deletes the archived daily notes
-// (archives/daily/YYYY-MM-DD.md) whose date is retentionDays or more calendar
+// (archives/_daily/YYYY-MM-DD.md) whose date is retentionDays or more calendar
 // days before today, and returns how many it removed. It never touches
 // another folder or file name, never follows a symlink and is not undoable.
 // A retention of zero or less removes nothing, and a missing folder is not
@@ -70,7 +70,7 @@ func daysBefore(date string, today time.Time) (int, bool) {
 	return int(todayDay.Sub(day).Hours() / hoursPerDay), true
 }
 
-// isPlainDir reports whether dir, as resolved, is still archives/daily under
+// isPlainDir reports whether dir, as resolved, is still archives/_daily under
 // the real notebook root and a real directory: a symlink (at archives or at
 // daily) that points at another folder inside the notebook stays within the
 // root but is not the folder to purge. A folder that does not exist passes.

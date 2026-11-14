@@ -34,7 +34,7 @@ func (m model) loadDailyTemplate() ([]byte, error) {
 
 // openDaily jumps PARA to the daily note offset days from today (-1
 // yesterday, 0 today, 1 tomorrow) and focuses PARA. A day with no note gets
-// one in inbox/daily, made from the daily template when the config names one
+// one in inbox/_daily, made from the daily template when the config names one
 // and empty otherwise, which undo removes. A template that cannot be used is
 // reported, and an empty note is made instead.
 func (m model) openDaily(offset int) model {

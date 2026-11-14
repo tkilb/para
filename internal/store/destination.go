@@ -9,7 +9,7 @@ import (
 const (
 	tabInbox    = "inbox"
 	tabArchives = "archives"
-	dailyDir    = "daily"
+	dailyDir    = "_daily"
 )
 
 // tabRoots are the folders PARA shows as tabs.
@@ -17,7 +17,7 @@ var tabRoots = []string{tabInbox, "projects", "areas", "resources", tabArchives}
 
 // MoveDestination returns where the note at rel goes when moved to the tab
 // folder tab: the root of that tab, keeping the file name. A dated daily note
-// (inbox/daily/YYYY-MM-DD.md) moved to the archives goes to archives/daily
+// (inbox/_daily/YYYY-MM-DD.md) moved to the archives goes to archives/_daily
 // instead, so the retention purge applies to it. It returns "" for an
 // unknown tab or an empty rel.
 func MoveDestination(rel, tab string) string {
@@ -46,7 +46,7 @@ func isDailyName(name string) bool {
 }
 
 // DailyDate returns the date of a dated daily note: a note named
-// YYYY-MM-DD.md directly inside inbox/daily or archives/daily. It reports
+// YYYY-MM-DD.md directly inside inbox/_daily or archives/_daily. It reports
 // false for anything else.
 func DailyDate(rel string) (string, bool) {
 	dir := path.Dir(rel)
@@ -61,14 +61,14 @@ func DailyDate(rel string) (string, bool) {
 }
 
 // IsUndigestedDaily reports whether rel is a dated daily note still in
-// inbox/daily, waiting to be digested and archived.
+// inbox/_daily, waiting to be digested and archived.
 func IsUndigestedDaily(rel string) bool {
 	_, ok := DailyDate(rel)
 	return ok && path.Dir(rel) == path.Join(tabInbox, dailyDir)
 }
 
 // DailyOverdue reports whether the dated daily note at rel is still in
-// inbox/daily although its date is retentionDays or more calendar days
+// inbox/_daily although its date is retentionDays or more calendar days
 // before today: it should have been digested and archived by now. A
 // retention of zero or less never marks anything.
 func DailyOverdue(rel string, retentionDays int, today time.Time) bool {

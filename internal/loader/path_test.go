@@ -68,7 +68,7 @@ func TestResolveFileTwoInboxFilesWithTheSameStemAreNotGuessed(t *testing.T) {
 func TestComplete(t *testing.T) {
 	home := tree(t, "Downloads/", "Documents/", "Desktop/", "notes.txt", ".hidden", "Downloads/meeting one.txt", "Downloads/meeting two.txt", "Downloads/Zoom.vtt")
 	t.Setenv("HOME", home)
-	inbox := tree(t, "standup 2026-11-03.md", "standup 2026-11-04.md", "Retro.md", "daily/")
+	inbox := tree(t, "standup 2026-11-03.md", "standup 2026-11-04.md", "Retro.md", "_daily/")
 
 	tests := []struct {
 		name        string
@@ -89,8 +89,8 @@ func TestComplete(t *testing.T) {
 		{"a folder that is not there", "~/nowhere/a", "~/nowhere/a", nil},
 		{"a bare name completes in the inbox", "stand", "standup 2026-11-0", []string{"standup 2026-11-03.md", "standup 2026-11-04.md"}},
 		{"a bare name, one match", "Ret", "Retro.md", []string{"Retro.md"}},
-		{"a bare folder in the inbox", "dai", "daily/", []string{"daily/"}},
-		{"empty input lists the inbox", "", "", []string{"daily/", "Retro.md", "standup 2026-11-03.md", "standup 2026-11-04.md"}},
+		{"a bare folder in the inbox", "_da", "_daily/", []string{"_daily/"}},
+		{"empty input lists the inbox", "", "", []string{"_daily/", "Retro.md", "standup 2026-11-03.md", "standup 2026-11-04.md"}},
 		{"an absolute path", filepath.Join(home, "Down"), filepath.Join(home, "Downloads") + "/", []string{"Downloads/"}},
 	}
 	for _, tt := range tests {
