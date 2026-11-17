@@ -16,8 +16,8 @@ const BadgeWidth = 4
 // UnsetBadge stands in for a note whose kind is unset.
 const UnsetBadge = "----"
 
-// unsetColor is a dim gray.
-var unsetColor = lipgloss.Color("245")
+// unsetColor is a dark gray, dim enough not to clash with the background.
+var unsetColor = lipgloss.Color("238")
 
 var styles = map[store.Kind]struct {
 	badge string
