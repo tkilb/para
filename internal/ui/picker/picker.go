@@ -27,19 +27,30 @@ const (
 	largeMaxBoxWidth = 120
 	largeMaxListRows = 24
 	minListRows      = 3
-	boxMargin        = 8 // columns and rows kept free around the box
-	chromeRows       = 4 // border (2), field and gap
-	charLimit        = 100
+	// tallPercent is the share of the terminal height a Tall box takes.
+	tallPercent = 80
+	boxMargin   = 8 // columns and rows kept free around the box
+	chromeRows  = 4 // border (2), field and gap
+	charLimit   = 100
 	// detailExtra widens the detail column beyond half the box.
-	detailExtra  = 4
-	noMatchLabel = "(no matches)"
-	defaultHint  = "enter select  esc cancel"
+	detailExtra = 4
+	// maxGroupLevels is how many headings an item can sit under, and
+	// groupIndent the columns each level indents what is under it.
+	maxGroupLevels = 2
+	groupIndent    = 2
+	noMatchLabel   = "(no matches)"
+	defaultHint    = "enter select  esc cancel"
 )
 
 var (
 	dimStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
 	selStyle   = lipgloss.NewStyle().Bold(true).Background(panel.SelectedRowBackground)
 	matchColor = lipgloss.Color("3")
+	// headingStyles draw the group headings, outermost first.
+	headingStyles = [maxGroupLevels]lipgloss.Style{
+		lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#e78a4e")),
+		lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("4")),
+	}
 )
 
 // Item is one choice. Label is matched against the query and shown; Detail
@@ -53,6 +64,12 @@ type Item struct {
 	// Preview is the text shown in the preview pane while the item is
 	// highlighted (see WithPreview).
 	Preview string
+	// Group, when set, lists the item under these headings (at most
+	// maxGroupLevels, outermost first) in the order the items come. Trim is
+	// how many bytes of the start of Label are left out of the row because
+	// the headings already say them; the whole Label is still matched.
+	Group []string
+	Trim  int
 	// Color, when set, draws the label in that color (except on the
 	// highlighted row, which keeps the selection colors).
 	Color lipgloss.Color
@@ -89,6 +106,11 @@ type Model struct {
 	screenHeight int
 	// large makes the box wider and taller, for lists of long paths.
 	large bool
+	// centered keeps the highlighted row in the middle of the list while the
+	// list is longer than its box.
+	centered bool
+	// tall makes the box a fixed share of the terminal's height.
+	tall bool
 	// hint, when set, replaces the footer's key hint.
 	hint string
 	// preview shows the highlighted item's Preview under the list, in a
@@ -120,6 +142,31 @@ func (m Model) Large() Model {
 	return m
 }
 
+// Centered keeps the highlighted row in the middle of the list, as far as
+// the ends of the list allow, instead of at its bottom edge.
+func (m Model) Centered() Model {
+	m.centered = true
+	return m
+}
+
+// Tall makes the box tallPercent percent of the terminal's height, at
+// any list length, so it does not change size as the list narrows.
+func (m Model) Tall() Model {
+	m.tall = true
+	return m
+}
+
+// centeredWindow is like panel.ScrollWindow, but puts the cursor in the
+// middle of the rows when it can.
+func centeredWindow(cursor, total, rows int) (start, end int) {
+	rows = max(rows, 1)
+	if total <= rows {
+		return 0, total
+	}
+	start = min(max(cursor-rows/2, 0), total-rows)
+	return start, start + rows
+}
+
 // WithHint replaces the key hint in the picker's footer, for a picker whose
 // owner handles extra keys.
 func (m Model) WithHint(h string) Model {
@@ -132,6 +179,9 @@ func (m Model) pageRows(screenHeight int) int {
 	if m.preview {
 		list, _ := stackedRows(screenHeight)
 		return list
+	}
+	if m.tall && screenHeight > 0 {
+		return max(screenHeight*tallPercent/100-listBox, minListRows)
 	}
 	limit := maxListRows
 	if m.large {
@@ -212,6 +262,33 @@ func (m Model) refilter() Model {
 	for i, c := range cands {
 		m.matches[i] = match{item: c.item, at: c.at}
 	}
+	return m.regroup()
+}
+
+// groupKey identifies an item's headings.
+func (it Item) groupKey() string { return strings.Join(it.Group, "\x00") }
+
+// regroup keeps the matches of one group together, the groups in the order
+// their first item comes in, and the matches in a group in the order ranked.
+// The cursor goes to the first row shown.
+func (m Model) regroup() Model {
+	first := map[string]int{}
+	for i, it := range m.items {
+		if _, ok := first[it.groupKey()]; !ok {
+			first[it.groupKey()] = i
+		}
+	}
+	grouped := false
+	for _, it := range m.items {
+		grouped = grouped || len(it.Group) > 0
+	}
+	if !grouped {
+		return m
+	}
+	sort.SliceStable(m.matches, func(i, j int) bool {
+		return first[m.items[m.matches[i].item].groupKey()] < first[m.items[m.matches[j].item].groupKey()]
+	})
+	m.cursor = 0
 	return m
 }
 
@@ -269,10 +346,10 @@ func (m Model) View(screenWidth, screenHeight int) string {
 	}
 	boxWidth := min(max(screenWidth-boxMargin, minBoxWidth), widest)
 	inner := boxWidth - 2
-	rows := min(m.pageRows(screenHeight), max(len(m.matches), 1))
-	if m.preview {
-		// A fixed height keeps the preview pane from jumping as the list
-		// narrows.
+	rowLines, cursorLine := m.listLines(inner)
+	rows := min(m.pageRows(screenHeight), max(len(rowLines), 1))
+	if m.preview || m.tall {
+		// A fixed height keeps the box from jumping as the list narrows.
 		rows = m.pageRows(screenHeight)
 	}
 
@@ -281,10 +358,11 @@ func (m Model) View(screenWidth, screenHeight int) string {
 	if len(m.matches) == 0 {
 		lines = append(lines, dimStyle.Render(noMatchLabel))
 	} else {
-		start, end := panel.ScrollWindow(m.cursor, len(m.matches), rows)
-		for i := start; i < end; i++ {
-			lines = append(lines, m.row(m.matches[i], inner, i == m.cursor))
+		start, end := panel.ScrollWindow(cursorLine, len(rowLines), rows)
+		if m.centered {
+			start, end = centeredWindow(cursorLine, len(rowLines), rows)
 		}
+		lines = append(lines, rowLines[start:end]...)
 	}
 	hint := defaultHint
 	if m.hint != "" {
@@ -294,11 +372,14 @@ func (m Model) View(screenWidth, screenHeight int) string {
 	if len(m.matches) > 0 {
 		footer.Right = strings.Join([]string{itoa(m.cursor + 1), itoa(len(m.matches))}, "/")
 	}
-	if !m.preview {
+	if !m.preview && !m.tall {
 		return panel.Frame(m.title, strings.Join(lines, "\n"), inner, len(lines), true, footer)
 	}
 	for len(lines) < rows+1 {
 		lines = append(lines, "")
+	}
+	if !m.preview {
+		return panel.Frame(m.title, strings.Join(lines, "\n"), inner, len(lines), true, footer)
 	}
 	list := panel.Frame(m.title, strings.Join(lines, "\n"), inner, len(lines), true, footer)
 	_, previewRows := stackedRows(screenHeight)
@@ -312,12 +393,39 @@ func (m Model) WithPreview(name string) Model {
 	return m
 }
 
+// listLines draws every match, a heading line before the first match of each
+// group (and of each subgroup), and says which line the cursor is on. The
+// lines of an ungrouped list are its rows.
+func (m Model) listLines(width int) (lines []string, cursorLine int) {
+	var prev []string
+	for i, mt := range m.matches {
+		it := m.items[mt.item]
+		from := 0
+		for from < len(prev) && from < len(it.Group) && prev[from] == it.Group[from] {
+			from++
+		}
+		for level := from; level < len(it.Group); level++ {
+			indent := strings.Repeat(" ", level*groupIndent)
+			lines = append(lines, headingStyles[level].Render(indent+ansi.Truncate(it.Group[level], max(width-len(indent), 1), "…")))
+		}
+		prev = it.Group
+		if i == m.cursor {
+			cursorLine = len(lines)
+		}
+		lines = append(lines, m.row(mt, width, i == m.cursor))
+	}
+	return lines, cursorLine
+}
+
 // row draws one item: its label with the matched characters picked out, and
 // its detail right-aligned.
 func (m Model) row(mt match, width int, cursor bool) string {
 	it := m.items[mt.item]
+	indent := strings.Repeat(" ", len(it.Group)*groupIndent)
+	width -= len(indent)
+	trim := min(max(it.Trim, 0), len(it.Label))
 	detail := ansi.Truncate(it.Detail, width/2+detailExtra, "…")
-	label := ansi.Truncate(it.Label, max(width-lipgloss.Width(detail)-1, 1), "…")
+	label := ansi.Truncate(it.Label[trim:], max(width-lipgloss.Width(detail)-1, 1), "…")
 	gap := strings.Repeat(" ", max(width-lipgloss.Width(label)-lipgloss.Width(detail), 0))
 
 	base := lipgloss.NewStyle()
@@ -330,11 +438,13 @@ func (m Model) row(mt match, width int, cursor bool) string {
 	hit := base.Foreground(matchColor).Underline(true)
 	// The folders of a path, before the item's Name, are drawn grey.
 	_, nameStart := it.name()
+	nameStart -= trim
 	folders := base.Foreground(dimStyle.GetForeground())
 	var b strings.Builder
+	b.WriteString(indent)
 	for i, r := range label {
 		switch {
-		case mt.at[i]:
+		case mt.at[i+trim]:
 			b.WriteString(hit.Render(string(r)))
 		case i < nameStart:
 			b.WriteString(folders.Render(string(r)))

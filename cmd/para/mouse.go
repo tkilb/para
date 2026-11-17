@@ -29,12 +29,12 @@ func (m model) hitAt(x, y int) (hit, bool) {
 	}
 	if x < g.leftWidth {
 		switch {
-		case y < g.stickiesHeight:
-			return hit{panelStickies, x, y}, true
-		case y < g.stickiesHeight+g.paraHeight:
-			return hit{panelPARA, x, y - g.stickiesHeight}, true
-		case y < g.stickiesHeight+g.paraHeight+g.relatedHeight:
-			return hit{panelRelated, x, y - g.stickiesHeight - g.paraHeight}, true
+		case y < g.blankHeight:
+			return hit{panelBlank, x, y}, true
+		case y < g.blankHeight+g.paraHeight:
+			return hit{panelPARA, x, y - g.blankHeight}, true
+		case y < g.blankHeight+g.paraHeight+g.relatedHeight:
+			return hit{panelRelated, x, y - g.blankHeight - g.paraHeight}, true
 		}
 		return hit{}, false
 	}
@@ -110,14 +110,6 @@ func (m model) click(h hit) model {
 	g := m.grid()
 	row := h.y - 1 // the first content row is under the top border
 	switch h.panel {
-	case panelStickies:
-		// While collapsed there is one row, so a click only focuses; once
-		// expanded it also chooses the row clicked.
-		if m.focus == panelStickies {
-			if i, ok := m.stickies.RowAt(row, g.stickiesHeight); ok {
-				m.stickies = m.stickies.SelectRow(i)
-			}
-		}
 	case panelPARA:
 		if h.y == 0 {
 			if i, ok := m.para.TabAt(h.x, g.leftWidth); ok {

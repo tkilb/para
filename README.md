@@ -77,7 +77,7 @@ archives/
 .para/      hidden: the trash (see Syncing)
 ```
 
-Where para keeps its own state (your position in each notebook, your stickies, the last notebook) is `~/.local/state/para/state.db`, or `$XDG_STATE_HOME/para`, or the folder in `PARA_STATE_DIR`. It is outside the notebooks.
+Where para keeps its own state (your position in each notebook, your marks, the last notebook) is `~/.local/state/para/state.db`, or `$XDG_STATE_HOME/para`, or the folder in `PARA_STATE_DIR`. It is outside the notebooks.
 
 ## Syncing and version control
 
@@ -87,13 +87,13 @@ Where para keeps its own state (your position in each notebook, your stickies, t
 .para/
 ```
 
-para never edits files other than your notes, so it does not add that line for you. Obsidian already hides folders that start with a dot. Everything else para keeps (positions, stickies) lives outside the notebook, so there is nothing else to exclude.
+para never edits files other than your notes, so it does not add that line for you. Obsidian already hides folders that start with a dot. Everything else para keeps (positions, marks) lives outside the notebook, so there is nothing else to exclude.
 
 ## The screen
 
 | Key | Panel | What it shows |
 | --- | --- | --- |
-| `1` | **Stickies** | Notes you pinned with `S`. One row (`5 stickies`) until focused, then one row each, up to five. |
+| `1` | *(empty)* | A one-line placeholder pane titled `[1]`. |
 | `2` | **PARA** | Five tabs (Inbox, Projects, Areas, Resources, Archives), each a folder browser. Only the selected tab is spelled out. Inside a folder, the first row is its path. |
 | `3` | **Related** | What the selected note references and what references it, from its `related` property. |
 | `0` | **Content** | The selected note's text, with a cursor line. |
@@ -132,7 +132,7 @@ Add your own kinds, or change how these look, with the `kinds` list in the confi
 | `ctrl+f` | Find a note by path (fuzzy). Results are ranked: the whole file name, then names that start with what you typed, then names where it starts a word, then names that contain it, then scattered letters in the name, then matches only in a folder; shorter names first. The folders are drawn grey |
 | `ctrl+/` or `F` | Search text in the notes of the notebook, as grep -i does, limited by two filters above the list: **Space** (All or one of the five PARA folders) and **Dir** (a path inside the space; from the notebook root when the space is All). Both start at the folder PARA shows. `tab` / `shift+tab` move between the query, Space and Dir; in Space, `←` `→` or `space` change it. Type words: type words, and every line holding all of them, exactly and ignoring case, is listed with its note, line and column and a preview of the note beside it. `↑` `↓` move, `pgup` `pgdown` page, `ctrl+d` `ctrl+u` scroll the preview, `enter` opens the note at the line, `esc` cancels |
 | `s` | Open the scratch pad, `_scratch.md` in the notebook root, in `$EDITOR` (always edit mode; the editor creates the file when you save) |
-| `S` | Pin or unpin the selected note as a sticky |
+| `M` | Search the marked notes by name in a popup. Notes are listed under their top folder (orange) and second folder (blue); a note directly in a folder has no second heading. When the selected note is marked, it is highlighted in the middle of the list. `enter` jumps to the note |
 | `A` | Add Note: add a note in the folder PARA shows |
 | `I` | Import the clipboard, a web page or a file with the agent; on an `IMPORT_` folder, run that import again |
 | `U` | Clip a web page |
@@ -165,12 +165,12 @@ In every picker, type to narrow the list (words separated by spaces must all mat
 | `a` | New note (end the name with `/` for a folder) |
 | `r` | Rename, updating references in other notes |
 | `K` | Set the kind |
-| `m` | Mark the note with an orange bullet in the first column of its row (a selected, yanked or cut row shows its bar instead), or clear the mark. Notes only. A mark follows the note's `uid` (one is added to the note when it has none) and is kept in the state database, per notebook |
+| `m` `m` | Press `m` twice in a row to mark the selected note with an orange bullet in the first column of its row (a selected, yanked or cut row shows its bar instead), or clear the mark. Notes only. A mark follows the note's `uid` (one is added to the note when it has none) and is kept in the state database, per notebook |
 | `e` | Edit in `$EDITOR` |
 | `/` then `n` / `N` | Search names, then step through the matches |
 | `.` | Show hidden files |
 
-**Content**: `↑` `↓` move the cursor line, `space` picks lines, `v`/`V` select a range, `ctrl+d` and `ctrl+u` move half a page (`pgdown` and `pgup` a whole page), `{` and `}` jump between paragraphs, `ctrl+a` selects all, `m` switches between the rendered Markdown view and plain text (the rendered view has a cursor row that keeps your place, and is read-only: `space`, `v`, `V`, `ctrl+a` and `y` leave it for plain text so lines can be picked), `y` copies the selection (or the line) to the system clipboard, `e` edits the note in `$EDITOR`, `r` renames it, and `enter` extracts the selection into a new Inbox note, after you choose its kind. **Related**: `enter` jumps to the note, `l` adds a reference, `d` removes one. **Stickies** (focused): `enter` jumps, `d` unpins.
+**Content**: `↑` `↓` move the cursor line, `space` picks lines, `v`/`V` select a range, `ctrl+d` and `ctrl+u` move half a page (`pgdown` and `pgup` a whole page), `{` and `}` jump between paragraphs, `ctrl+a` selects all, `m` switches between the rendered Markdown view and plain text (the rendered view has a cursor row that keeps your place, and is read-only: `space`, `v`, `V`, `ctrl+a` and `y` leave it for plain text so lines can be picked), `y` copies the selection (or the line) to the system clipboard, `e` edits the note in `$EDITOR`, `r` renames it, and `enter` extracts the selection into a new Inbox note, after you choose its kind. **Related**: `enter` jumps to the note, `l` adds a reference, `d` removes one.
 
 The mouse works too: click a panel to focus it, click a row, tab or Content line to select it, and use the wheel to move. While a popup is open, only the wheel (in lists) and a click to dismiss a notice do anything, so a stray click never discards what you typed. Mouse reporting changes native text selection in most terminals: hold `Shift` (or `Option` on macOS) while dragging to select text.
 

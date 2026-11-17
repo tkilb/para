@@ -11,15 +11,18 @@ const (
 	// infoHeight is the outer height of the Info panel: the three standard
 	// rows plus the border. Other properties scroll.
 	infoHeight = 5
+	// blankHeight is the outer height of the empty [1] pane: one row plus the
+	// border.
+	blankHeight = 3
 	// leftWidthPercent is the left column share of the terminal width.
 	leftWidthPercent = 30
 )
 
 // grid holds the outer (border included) size of every panel.
 type grid struct {
-	leftWidth, rightWidth                     int
-	stickiesHeight, paraHeight, relatedHeight int
-	titleHeight, contentHeight, infoHeight    int
+	leftWidth, rightWidth                  int
+	blankHeight, paraHeight, relatedHeight int
+	titleHeight, contentHeight, infoHeight int
 }
 
 // zoomed gives the focused panel the whole width x height, as lazytask does
@@ -28,8 +31,8 @@ type grid struct {
 func (g grid) zoomed(focus panelID, width, height int) grid {
 	g.leftWidth, g.rightWidth = width, width
 	switch focus {
-	case panelStickies:
-		g.stickiesHeight = height
+	case panelBlank:
+		g.blankHeight = height
 	case panelPARA:
 		g.paraHeight = height
 	case panelRelated:
@@ -42,21 +45,20 @@ func (g grid) zoomed(focus panelID, width, height int) grid {
 	return g
 }
 
-// computeGrid splits width x height into the two-column layout: Stickies (of
-// outer height stickiesHeight, which grows while it has focus), PARA and
-// Related on the left; Title, Content and Info, top to bottom, on the
+// computeGrid splits width x height into the two-column layout: the empty
+// one-row [1] pane, PARA and Related on the left; Title, Content and Info, top to bottom, on the
 // right. Related takes about a quarter of the height and Info a fixed five rows, PARA
 // and Content take the rest.
-func computeGrid(width, height, stickiesHeight int) grid {
+func computeGrid(width, height int) grid {
 	g := grid{
-		leftWidth:      width * leftWidthPercent / 100,
-		stickiesHeight: stickiesHeight,
+		leftWidth:   width * leftWidthPercent / 100,
+		blankHeight: blankHeight,
 	}
 	g.rightWidth = width - g.leftWidth
 
 	side := max(height/4, minSideHeight)
 	g.relatedHeight = side
-	g.paraHeight = max(height-g.stickiesHeight-g.relatedHeight, minSideHeight)
+	g.paraHeight = max(height-g.blankHeight-g.relatedHeight, minSideHeight)
 	g.titleHeight = titleHeight
 	g.infoHeight = infoHeight
 	g.contentHeight = max(height-g.titleHeight-g.infoHeight, minSideHeight)

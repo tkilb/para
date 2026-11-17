@@ -29,34 +29,33 @@ import (
 	"github.com/tkilb/para/internal/ui/popup"
 	"github.com/tkilb/para/internal/ui/related"
 	"github.com/tkilb/para/internal/ui/statusbar"
-	"github.com/tkilb/para/internal/ui/stickies"
 	"github.com/tkilb/para/internal/ui/title"
 	"github.com/tkilb/para/internal/undo"
 )
 
 // panelID identifies a panel. Its value is the number key that focuses it,
-// so Content is 0 and Stickies is 1, matching the titles in the grid.
+// so Content is 0 and the empty [1] pane is 1, matching the titles in the grid.
 type panelID int
 
 const (
 	panelContent panelID = iota
-	panelStickies
+	panelBlank
 	panelPARA
 	panelRelated
 	panelInfo
 )
 
 var panelNames = map[panelID]string{
-	panelContent:  "Content",
-	panelStickies: "Stickies",
-	panelPARA:     "PARA",
-	panelRelated:  "Related",
-	panelInfo:     "Info",
+	panelContent: "Content",
+	panelBlank:   "[1]",
+	panelPARA:    "PARA",
+	panelRelated: "Related",
+	panelInfo:    "Info",
 }
 
 // focusCycle is the Tab/Shift+Tab order: the left column top to bottom,
 // then the right column top to bottom. The Title panel is not in it.
-var focusCycle = []panelID{panelStickies, panelPARA, panelRelated, panelContent, panelInfo}
+var focusCycle = []panelID{panelBlank, panelPARA, panelRelated, panelContent, panelInfo}
 
 // isPanel reports whether n is the number of a focusable panel.
 func isPanel(n int) bool {
@@ -88,7 +87,7 @@ func (p panelID) cycleIndex() int {
 var globalBindings = []statusbar.Binding{
 	{Key: "0-4", Label: "focus panel"},
 	{Key: "s", Label: "scratch"},
-	{Key: "S", Label: "pin note"},
+	{Key: "M", Label: "marks"},
 	{Key: "B", Label: "notebook"},
 	{Key: "ctrl+f", Label: "find note"},
 	{Key: "ctrl+y", Label: "glossary"},
@@ -112,6 +111,7 @@ var paraBindings = []statusbar.Binding{
 	{Key: "a", Label: "new"},
 	{Key: "r", Label: "rename"},
 	{Key: "e", Label: "edit"},
+	{Key: "mm", Label: "mark"},
 	{Key: "/", Label: "search"},
 	{Key: "n/N", Label: "next/prev match"},
 	{Key: "v", Label: "visual"},
@@ -124,13 +124,6 @@ var relatedBindings = []statusbar.Binding{
 	{Key: "l", Label: "add reference"},
 	{Key: "d", Label: "remove reference"},
 	{Key: "enter", Label: "jump to note"},
-	{Key: "esc/←", Label: "back to PARA"},
-}
-
-var stickiesBindings = []statusbar.Binding{
-	{Key: "↑/↓", Label: "choose"},
-	{Key: "enter", Label: "jump to the note"},
-	{Key: "d", Label: "unpin"},
 	{Key: "esc/←", Label: "back to PARA"},
 }
 
@@ -160,10 +153,9 @@ type model struct {
 	content content.Model
 	info    info.Model
 	related related.Model
-	// stickies is the panel of pinned notes and stickyUIDs the uids of the
-	// notes pinned in the open notebook, in the order pinned.
-	stickies   stickies.Model
-	stickyUIDs []string
+	// markArmed is set by a first m in PARA: a second m, as the very next
+	// key, marks the note; any other key clears it.
+	markArmed bool
 	// markUIDs are the uids of the notes marked with a bullet in PARA.
 	markUIDs []string
 	// notebooks are the configured notebooks and activeNotebook the index of
@@ -265,7 +257,7 @@ type shownNote struct {
 func initialModel(s store.Store) model {
 	return model{
 		store: s, focus: panelPARA, para: para.New(s),
-		content: content.New(), info: info.New(), related: related.New(), title: title.New(), history: &undo.Stack{}, purged: map[string]bool{}, stickies: stickies.New(),
+		content: content.New(), info: info.New(), related: related.New(), title: title.New(), history: &undo.Stack{}, purged: map[string]bool{},
 		syncGate: gitsync.NewGate(syncDebounce), helpSearch: helppopup.NoSearch, sources: config.DefaultSources, writeClipboard: clipboard.WriteAll, fetcher: clip.NewFetcher(), openURL: browser.Open,
 	}
 }
@@ -363,7 +355,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	next, cmd := m.update(msg)
 	after := next.(model)
 	if after.width > 0 {
-		after = after.resizePanels() // focus may have made Stickies grow or shrink
+		after = after.resizePanels()
 	}
 	after = after.syncSelection()
 	after.content = after.content.SetFront(after.wantFront())
@@ -374,12 +366,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return after, cmd
 }
 
-// grid is the panel layout for the current size and focus: Stickies is one
-// row until it has focus, then up to stickies.MaxRows. While zoomed, the
-// focused panel takes the whole grid.
+// grid is the panel layout for the current size. While zoomed, the focused
+// panel takes the whole grid.
 func (m model) grid() grid {
-	rows := stickies.Rows(m.focus == panelStickies, m.stickies.Len())
-	g := computeGrid(m.width, m.height-1, rows+panelBorderRows)
+	g := computeGrid(m.width, m.height-1)
 	if m.zoomed {
 		return g.zoomed(m.focus, m.width, m.height-1)
 	}
@@ -505,6 +495,12 @@ func (m model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m.typeKey(msg)
 		}
 	}
+	armed := m.markArmed
+	m.markArmed = false
+	if key == "m" && m.focus == panelPARA && !armed {
+		m.markArmed = true // the second m reaches PARA, which marks the note
+		return m, nil
+	}
 	var cmd tea.Cmd
 	switch key {
 	case "q", "ctrl+c":
@@ -518,8 +514,8 @@ func (m model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m, cmd = m.importKey()
 	case "B":
 		m, cmd = m.openNotebookPicker()
-	case "S":
-		m = m.toggleSticky()
+	case "M":
+		m, cmd = m.openMarks()
 	case "s":
 		m, cmd = m.openScratch()
 	case "ctrl+f":
@@ -574,18 +570,12 @@ func (m model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			} else {
 				m.focus = panelPARA
 			}
-		case panelInfo, panelRelated, panelStickies:
+		case panelInfo, panelRelated, panelBlank:
 			m.focus = panelPARA
 		case panelPARA:
 			m, cmd = m.paraKey(msg)
 		}
 	case "enter", "right":
-		if m.focus == panelStickies {
-			if key == "enter" {
-				m = m.stickiesKey(msg)
-			}
-			break
-		}
 		if m.focus == panelRelated {
 			m, cmd = m.relatedKey(msg)
 			break
@@ -614,8 +604,6 @@ func (m model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			break
 		}
 		switch m.focus {
-		case panelStickies:
-			m = m.stickiesKey(msg)
 		case panelPARA:
 			m, cmd = m.paraKey(msg)
 		case panelRelated:
@@ -639,8 +627,6 @@ func (m model) paraKey(msg tea.KeyMsg) (model, tea.Cmd) {
 func (m model) bindings() []statusbar.Binding {
 	var local []statusbar.Binding
 	switch m.focus {
-	case panelStickies:
-		local = stickiesBindings
 	case panelPARA:
 		local = paraBindings
 	case panelRelated:
@@ -669,7 +655,8 @@ func (m model) View() string {
 		case panelInfo:
 			return m.info.View(w, h, m.focus == id)
 		}
-		return m.stickies.View(w, h, m.focus == id)
+		iw, ih := panel.InnerSize(w, h)
+		return panel.Frame(panelNames[id], "", iw, ih, m.focus == id)
 	}
 
 	if m.zoomed {
@@ -679,7 +666,7 @@ func (m model) View() string {
 	}
 
 	left := lipgloss.JoinVertical(lipgloss.Left,
-		render(panelStickies, g.leftWidth, g.stickiesHeight),
+		render(panelBlank, g.leftWidth, g.blankHeight),
 		render(panelPARA, g.leftWidth, g.paraHeight),
 		render(panelRelated, g.leftWidth, g.relatedHeight),
 	)

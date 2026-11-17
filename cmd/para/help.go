@@ -13,7 +13,7 @@ import (
 // switching is movement, so it is under Navigation, as in lazygit.
 var helpGlobalBindings = []statusbar.Binding{
 	{Key: "s", Label: "open the scratch pad (_scratch.md in the notebook root) in $EDITOR"},
-	{Key: "S", Label: "pin the selected note as a sticky (or unpin it)"},
+	{Key: "M", Label: "search the marked notes by name, grouped by folder (enter jumps to the note)"},
 	{Key: "ctrl+f", Label: "find a note by name or path anywhere in the notebook (best file name matches first)"},
 	{Key: "ctrl+/ or F", Label: "search text in the notes, grep style, filtered by Space and Dir (tab switches fields; opens the note at the line)"},
 	{Key: "B", Label: "choose the notebook to open (your place in each is remembered)"},
@@ -58,18 +58,11 @@ var helpParaBindings = []statusbar.Binding{
 	{Key: "a", Label: "new note (end with / for folder)"},
 	{Key: "r", Label: "rename (updates references)"},
 	{Key: "K", Label: "set the note's kind"},
-	{Key: "m", Label: "mark the note with a bullet (or clear the mark)"},
+	{Key: "mm", Label: "mark the note with a bullet (or clear the mark); press m twice"},
 	{Key: "e", Label: "edit in $EDITOR"},
 	{Key: "/", Label: "search names"},
 	{Key: "n/N", Label: "next/previous match"},
 	{Key: ".", Label: "show hidden files"},
-}
-
-var helpStickiesBindings = []statusbar.Binding{
-	{Key: "↑/↓", Label: "choose a sticky"},
-	{Key: "enter", Label: "jump to the note"},
-	{Key: "d", Label: "unpin the sticky"},
-	{Key: "esc/←", Label: "back to PARA"},
 }
 
 var helpRelatedBindings = []statusbar.Binding{
@@ -119,8 +112,6 @@ func (m model) helpSections() []helppopup.Section {
 
 func (m model) helpLocalBindings() []statusbar.Binding {
 	switch m.focus {
-	case panelStickies:
-		return helpStickiesBindings
 	case panelPARA:
 		return helpParaBindings
 	case panelRelated:

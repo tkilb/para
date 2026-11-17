@@ -149,62 +149,10 @@ func TestOpenRejectsACorruptFile(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestStickiesRoundTripInOrderPerNotebook(t *testing.T) {
-	db, _ := open(t)
-	got, err := db.LoadStickies("/a")
-	require.NoError(t, err)
-	assert.Empty(t, got)
-
-	require.NoError(t, db.SaveStickies("/a", []string{"u3", "u1", "u2"}))
-	require.NoError(t, db.SaveStickies("/b", []string{"x"}))
-
-	got, err = db.LoadStickies("/a")
-	require.NoError(t, err)
-	assert.Equal(t, []string{"u3", "u1", "u2"}, got, "the order they were pinned in")
-	got, err = db.LoadStickies("/b")
-	require.NoError(t, err)
-	assert.Equal(t, []string{"x"}, got)
-}
-
-func TestSaveStickiesReplacesAndCleans(t *testing.T) {
-	db, _ := open(t)
-	require.NoError(t, db.SaveStickies("/a", []string{"u1", "u2"}))
-	require.NoError(t, db.SaveStickies("/a", []string{"u2", "", "u2", "u9"}))
-	got, err := db.LoadStickies("/a")
-	require.NoError(t, err)
-	assert.Equal(t, []string{"u2", "u9"}, got, "blank and repeated uids are dropped")
-
-	require.NoError(t, db.SaveStickies("/a", nil))
-	got, err = db.LoadStickies("/a")
-	require.NoError(t, err)
-	assert.Empty(t, got)
-}
-
-func TestSaveStickiesBoundsWhatIsStored(t *testing.T) {
-	db, _ := open(t)
-	many := make([]string, MaxStickies+10)
-	for i := range many {
-		many[i] = "u" + string(rune('a'+i%26)) + string(rune('a'+i/26))
-	}
-	require.NoError(t, db.SaveStickies("/a", many))
-	got, err := db.LoadStickies("/a")
-	require.NoError(t, err)
-	assert.Len(t, got, MaxStickies)
-
-	long := string(make([]byte, 0)) + "x"
-	for len(long) <= maxUIDLen {
-		long += long
-	}
-	require.NoError(t, db.SaveStickies("/a", []string{long, "ok"}))
-	got, err = db.LoadStickies("/a")
-	require.NoError(t, err)
-	assert.Equal(t, []string{"ok"}, got, "an absurdly long uid is dropped")
-}
-
 func TestOpenUpgradesAVersionOneDatabase(t *testing.T) {
 	db, dir := open(t)
 	require.NoError(t, db.SaveSession(Session{Notebook: "/a", Focus: 2}))
-	_, err := db.sql.Exec(`DROP TABLE sticky; PRAGMA user_version = 1`)
+	_, err := db.sql.Exec(`PRAGMA user_version = 1`)
 	require.NoError(t, err)
 	require.NoError(t, db.Close())
 
@@ -214,7 +162,7 @@ func TestOpenUpgradesAVersionOneDatabase(t *testing.T) {
 	s, err := db.LoadSession()
 	require.NoError(t, err)
 	assert.Equal(t, "/a", s.Notebook, "what was saved stays")
-	require.NoError(t, db.SaveStickies("/a", []string{"u1"}))
+	require.NoError(t, db.SaveMarks("/a", []string{"u1"}))
 }
 
 func TestMarksRoundTripPerNotebook(t *testing.T) {
@@ -268,7 +216,7 @@ func TestSaveMarksBoundsWhatIsStored(t *testing.T) {
 
 func TestOpenUpgradesAVersionTwoDatabase(t *testing.T) {
 	db, dir := open(t)
-	require.NoError(t, db.SaveStickies("/a", []string{"u1"}))
+	require.NoError(t, db.SaveSession(Session{Notebook: "/a", Focus: 1}))
 	_, err := db.sql.Exec(`DROP TABLE mark; PRAGMA user_version = 2`)
 	require.NoError(t, err)
 	require.NoError(t, db.Close())
@@ -276,11 +224,35 @@ func TestOpenUpgradesAVersionTwoDatabase(t *testing.T) {
 	db, err = Open(dir)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = db.Close() })
-	st, err := db.LoadStickies("/a")
+	st, err := db.LoadSession()
 	require.NoError(t, err)
-	assert.Equal(t, []string{"u1"}, st, "what was saved stays")
+	assert.Equal(t, "/a", st.Notebook, "what was saved stays")
 	require.NoError(t, db.SaveMarks("/a", []string{"m1"}))
 	got, err := db.LoadMarks("/a")
 	require.NoError(t, err)
 	assert.Equal(t, []string{"m1"}, got)
+}
+
+func TestOpenConvertsStickiesToMarks(t *testing.T) {
+	db, dir := open(t)
+	_, err := db.sql.Exec(`CREATE TABLE sticky (notebook TEXT NOT NULL, pos INTEGER NOT NULL, uid TEXT NOT NULL, PRIMARY KEY (notebook, pos));
+INSERT INTO sticky VALUES ('/a', 0, 'u2'), ('/a', 1, 'u1'), ('/b', 0, 'x');
+PRAGMA user_version = 3`)
+	require.NoError(t, err)
+	require.NoError(t, db.SaveMarks("/a", []string{"u1", "m1"}))
+	require.NoError(t, db.Close())
+
+	db, err = Open(dir)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
+	got, err := db.LoadMarks("/a")
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{"u1", "u2", "m1"}, got, "stickies join the marks, without repeats")
+	got, err = db.LoadMarks("/b")
+	require.NoError(t, err)
+	assert.Equal(t, []string{"x"}, got)
+
+	var n int
+	require.NoError(t, db.sql.QueryRow(`SELECT count(*) FROM sqlite_master WHERE name = 'sticky'`).Scan(&n))
+	assert.Zero(t, n, "the sticky table is gone")
 }

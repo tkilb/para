@@ -279,6 +279,9 @@ func (m model) statusLine() string {
 	if m.importing > 0 {
 		return statusbar.RenderWithBook(m.notebookName(), m.syncState(), []statusbar.Binding{{Key: "…", Label: m.importLabel}})
 	}
+	if m.markArmed {
+		return statusbar.RenderWithBook(m.notebookName(), m.syncState(), []statusbar.Binding{{Key: "m", Label: "press m again to mark or unmark the note"}})
+	}
 	if m.status != "" {
 		return statusbar.RenderWithBook(m.notebookName(), m.syncState(), []statusbar.Binding{{Key: "✓", Label: m.status}})
 	}

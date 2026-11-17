@@ -1,13 +1,79 @@
 package main
 
 import (
+	"cmp"
 	"fmt"
+	"path/filepath"
 	"slices"
+	"strings"
+
+	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/tkilb/para/internal/state"
 	"github.com/tkilb/para/internal/store"
+	"github.com/tkilb/para/internal/textsafe"
+	"github.com/tkilb/para/internal/ui/picker"
 	"github.com/tkilb/para/internal/ui/popup"
 )
+
+const (
+	marksTitle = "Marks"
+	marksHint  = "enter jump to note  esc cancel"
+)
+
+// noteUID reads the uid property of the note at rel, or "" when it has none.
+func (m model) noteUID(rel string) (string, error) {
+	note, err := m.store.ReadNote(rel)
+	if err != nil {
+		return "", err
+	}
+	if v := note.Frontmatter.Get("uid"); v != nil {
+		return strings.TrimSpace(v.Value), nil
+	}
+	return "", nil
+}
+
+// openMarks opens a fuzzy picker over the marked notes, with the highlight,
+// centered, on the note under the PARA cursor when that note is marked. Enter
+// jumps to the note. A mark whose note
+// cannot be found (deleted outside para) is left out.
+func (m model) openMarks() (model, tea.Cmd) {
+	if m.notebookRoot() == "" {
+		return m.notify(popup.Info, "Open a notebook first."), nil
+	}
+	var items []picker.Item
+	for _, uid := range m.markUIDs {
+		rel, ok := m.links.ByUID(uid)
+		if !ok {
+			continue
+		}
+		it := picker.Item{
+			Label: textsafe.Sanitize(strings.TrimSuffix(filepath.ToSlash(rel), filepath.Ext(rel))),
+			Name:  textsafe.Sanitize(noteName(rel)),
+			Value: rel,
+		}
+		it.Group, it.Trim = markGroup(it.Label)
+		items = append(items, it)
+	}
+	if len(items) == 0 {
+		return m.notify(popup.Info, "No marked notes. Press m on a note to mark it."), nil
+	}
+	slices.SortFunc(items, compareMarks)
+	p, cmd := picker.New(marksTitle, items)
+	p = p.Large().Tall().Centered().WithHint(marksHint).WithCursor(m.currentMarkIndex(items))
+	m.picker, m.pickerOp = &p, pickMark
+	return m, cmd
+}
+
+// currentMarkIndex is the position in items of the note under the PARA
+// cursor, or 0 when that note is not among them.
+func (m model) currentMarkIndex(items []picker.Item) int {
+	e, ok := m.para.SelectedNote()
+	if !ok {
+		return 0
+	}
+	return max(slices.IndexFunc(items, func(it picker.Item) bool { return it.Value == e.Rel }), 0)
+}
 
 // toggleMark marks the note at rel with a bullet in PARA, or clears the mark
 // when it has one. A mark follows the note's uid, so a note without one is
@@ -65,4 +131,44 @@ func (m model) loadMarks() model {
 	m.markUIDs = uids
 	m.para = m.para.WithMarks(uids)
 	return m
+}
+
+// paraOrder is the order the top folders are listed in: Inbox, then PARA.
+var paraOrder = []string{"inbox", "projects", "areas", "resources", "archives"}
+
+// markGroup is the headings a marked note sits under: its top folder, then
+// its second folder when it has one (a note directly in a folder has no
+// second heading), and how much of the path those headings already say.
+// label is the note's path without its extension, slash separated.
+func markGroup(label string) (group []string, trim int) {
+	parts := strings.Split(label, "/")
+	depth := min(len(parts)-1, 2) // the last part is the note, not a folder
+	if depth == 0 {
+		return nil, 0
+	}
+	group = slices.Clone(parts[:depth])
+	if i := slices.Index(paraOrder, group[0]); i >= 0 {
+		group[0] = strings.ToUpper(group[0][:1]) + group[0][1:]
+	}
+	return group, len(strings.Join(parts[:depth], "/")) + 1
+}
+
+// compareMarks orders the marked notes by top folder (Inbox, Projects,
+// Areas, Resources, Archives, then any other folder, then the notebook root),
+// then by path.
+func compareMarks(a, b picker.Item) int {
+	if c := cmp.Compare(markRank(a), markRank(b)); c != 0 {
+		return c
+	}
+	return strings.Compare(a.Label, b.Label)
+}
+
+func markRank(it picker.Item) int {
+	if len(it.Group) == 0 {
+		return len(paraOrder) + 1
+	}
+	if i := slices.Index(paraOrder, strings.ToLower(it.Group[0])); i >= 0 {
+		return i
+	}
+	return len(paraOrder)
 }

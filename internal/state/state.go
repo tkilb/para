@@ -18,15 +18,13 @@ import (
 const (
 	// TabCount is the number of PARA tabs.
 	TabCount = 5
-	// MaxStickies is how many stickies a notebook keeps.
-	MaxStickies = 50
 	// maxUIDLen bounds a saved uid, so a damaged value cannot grow the file.
 	maxUIDLen = 128
 
 	dbFile        = "state.db"
 	dirPerm       = 0o700
 	filePerm      = 0o600
-	schemaVersion = 3
+	schemaVersion = 4
 	busyTimeoutMS = 5000
 )
 
@@ -122,7 +120,7 @@ func (d *DB) init(path string) error {
 }
 
 func (d *DB) migrate() error {
-	_, err := d.sql.Exec(fmt.Sprintf(`
+	_, err := d.sql.Exec(`
 CREATE TABLE IF NOT EXISTS session (
 	id       INTEGER PRIMARY KEY CHECK (id = 1),
 	notebook TEXT NOT NULL,
@@ -139,20 +137,48 @@ CREATE TABLE IF NOT EXISTS tab (
 	name     TEXT NOT NULL,
 	PRIMARY KEY (notebook, idx)
 );
-CREATE TABLE IF NOT EXISTS sticky (
-	notebook TEXT NOT NULL,
-	pos      INTEGER NOT NULL,
-	uid      TEXT NOT NULL,
-	PRIMARY KEY (notebook, pos)
-);
 CREATE TABLE IF NOT EXISTS mark (
 	notebook TEXT NOT NULL,
 	uid      TEXT NOT NULL,
 	PRIMARY KEY (notebook, uid)
 );
-PRAGMA user_version = %d;`, schemaVersion))
+`)
 	if err != nil {
 		return fmt.Errorf("prepare state database: %w", err)
+	}
+	if err := d.convertStickies(); err != nil {
+		return err
+	}
+	if _, err := d.sql.Exec(fmt.Sprintf(`PRAGMA user_version = %d`, schemaVersion)); err != nil {
+		return fmt.Errorf("prepare state database: %w", err)
+	}
+	return nil
+}
+
+// convertStickies turns the stickies of an older database into marks and
+// drops the sticky table, all or nothing. Stickies were removed from para;
+// a database that never had the table is left alone.
+func (d *DB) convertStickies() error {
+	var n int
+	if err := d.sql.QueryRow(`SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'sticky'`).Scan(&n); err != nil {
+		return fmt.Errorf("convert stickies: %w", err)
+	}
+	if n == 0 {
+		return nil
+	}
+	tx, err := d.sql.Begin()
+	if err != nil {
+		return fmt.Errorf("convert stickies: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.Exec(`INSERT OR IGNORE INTO mark (notebook, uid) SELECT notebook, uid FROM sticky WHERE uid <> '' AND length(uid) <= ?`, maxUIDLen); err != nil {
+		return fmt.Errorf("convert stickies: %w", err)
+	}
+	if _, err := tx.Exec(`DROP TABLE sticky`); err != nil {
+		return fmt.Errorf("convert stickies: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("convert stickies: %w", err)
 	}
 	return nil
 }
@@ -251,55 +277,6 @@ ON CONFLICT(path) DO UPDATE SET active_tab = excluded.active_tab`, path, nb.Acti
 	}
 	return nil
 }
-
-// LoadStickies returns the uids of the notes pinned in the notebook at path,
-// in the order they were pinned. Blank or oversized values are dropped.
-func (d *DB) LoadStickies(path string) ([]string, error) {
-	rows, err := d.sql.Query(`SELECT uid FROM sticky WHERE notebook = ? ORDER BY pos`, path)
-	if err != nil {
-		return nil, fmt.Errorf("load stickies: %w", err)
-	}
-	defer rows.Close()
-	var uids []string
-	for rows.Next() {
-		var uid string
-		if err := rows.Scan(&uid); err != nil {
-			return nil, fmt.Errorf("load stickies: %w", err)
-		}
-		uids = append(uids, uid)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("load stickies: %w", err)
-	}
-	return cleanStickies(uids), nil
-}
-
-// SaveStickies replaces the stickies of the notebook at path, all or nothing.
-// Blank, oversized and repeated uids are dropped and at most MaxStickies are
-// kept.
-func (d *DB) SaveStickies(path string, uids []string) error {
-	tx, err := d.sql.Begin()
-	if err != nil {
-		return fmt.Errorf("save stickies: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
-	if _, err := tx.Exec(`DELETE FROM sticky WHERE notebook = ?`, path); err != nil {
-		return fmt.Errorf("save stickies: %w", err)
-	}
-	for i, uid := range cleanStickies(uids) {
-		if _, err := tx.Exec(`INSERT INTO sticky (notebook, pos, uid) VALUES (?, ?, ?)`, path, i, uid); err != nil {
-			return fmt.Errorf("save stickies: %w", err)
-		}
-	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("save stickies: %w", err)
-	}
-	return nil
-}
-
-// cleanStickies drops blank, oversized and repeated uids, keeps the order and
-// stops at MaxStickies.
-func cleanStickies(uids []string) []string { return cleanUIDs(uids, MaxStickies) }
 
 // cleanUIDs drops blank, oversized and repeated uids, keeps the order and
 // stops at limit.

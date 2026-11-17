@@ -26,6 +26,7 @@ const (
 	pickFile                           // jump to a note found by name
 	pickAppendTemplate                 // append a template to the note at pickerFor
 	pickGlossary                       // browse the glossary (see glossary.go)
+	pickMark                           // jump to a marked note (see mark.go)
 )
 
 // openReferencePicker lists the notes the shown note could reference: every
@@ -87,6 +88,8 @@ func (m model) pickerKey(msg tea.Msg) (model, tea.Cmd) {
 			return m.appendTemplate(m.pickerFor, item.Value), nil
 		case pickGlossary:
 			return m.showGlossaryEntry(parseGlossaryValue(item.Value))
+		case pickMark:
+			return m.chooseFoundNote(item.Value), nil
 		}
 		return m.editNote(m.pickerFor, fmt.Sprintf("add reference to %s", item.Value),
 			func(fm *store.Frontmatter) { links.AddReference(fm, item.Value) }), nil

@@ -20,7 +20,6 @@ import (
 	"github.com/tkilb/para/internal/ui/picker"
 	"github.com/tkilb/para/internal/ui/popup"
 	"github.com/tkilb/para/internal/ui/related"
-	"github.com/tkilb/para/internal/ui/stickies"
 	"github.com/tkilb/para/internal/ui/title"
 	"github.com/tkilb/para/internal/undo"
 )
@@ -125,11 +124,11 @@ func (m model) switchNotebook(i int) model {
 		purged, purgeErr = m.store.PurgeDailies(m.retentionDays, time.Now())
 	}
 	m.history, m.links, m.shown = &undo.Stack{}, nil, shownNote{}
-	m.stickyUIDs, m.markUIDs, m.stickies = nil, nil, stickies.New()
+	m.markUIDs = nil
 	m.content, m.info, m.related, m.title = content.New(), info.New(), related.New(), title.New()
 	m.para = para.New(m.store).WithRetention(m.retentionDays, time.Now)
 	m.session.notebook = nb.Path
-	m = m.loadStickies().loadMarks().restorePosition().resizePanels()
+	m = m.loadMarks().restorePosition().resizePanels()
 	m.activeNotebook = i
 	m.gitSync = nil
 	m.focus = panelPARA

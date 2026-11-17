@@ -49,5 +49,5 @@ func (m model) refreshLinks() model {
 	}
 	m.shown = shownNote{}
 	m.syncDirty = true // the notes changed, so the git state may have
-	return m.syncStickies()
+	return m
 }
