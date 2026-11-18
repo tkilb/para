@@ -185,6 +185,10 @@ func (m Model) body(t tabState, width, height int, focused bool) string {
 	return strings.Join(lines, "\n")
 }
 
+// bundleMark stands before the number of images bundled with a note, on its
+// row. It is one column wide in every terminal and common font.
+const bundleMark = "❖"
+
 // renderRow draws one row: a marker column (the bar, or the bullet of a
 // marked note), a kind badge (blank for
 // directories), the name, and for directories an item count right-aligned.
@@ -217,7 +221,7 @@ func renderRow(r row, width int, cursor bool, mk mark, marked bool, query string
 	default:
 		badge, badgeColor = kindstyle.Badge(r.kind)
 		if n := r.entry.Attachments; n > 0 {
-			right = fmt.Sprintf("+%d", n)
+			right = fmt.Sprintf("%s%d", bundleMark, n)
 		}
 	}
 
@@ -228,9 +232,9 @@ func renderRow(r row, width int, cursor bool, mk mark, marked bool, query string
 		countSel = selStyle.Foreground(overdueColor)
 	}
 
-	nameWidth := max(width-badgeWidth-1-len(right)-1, 1)
+	nameWidth := max(width-badgeWidth-1-ansi.StringWidth(right)-1, 1)
 	name = ansi.Truncate(name, nameWidth, "…")
-	gap := strings.Repeat(" ", max(width-badgeWidth-1-ansi.StringWidth(name)-len(right), 0))
+	gap := strings.Repeat(" ", max(width-badgeWidth-1-ansi.StringWidth(name)-ansi.StringWidth(right), 0))
 
 	if cursor {
 		nameSel := selStyle
