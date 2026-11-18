@@ -206,12 +206,15 @@ func renderRow(r row, width int, cursor bool, mk mark, marked bool, query string
 	width -= markerWidth
 
 	badge, badgeColor := strings.Repeat(" ", badgeWidth), lipgloss.Color("")
-	name := strings.TrimSuffix(r.entry.Name, ".md")
+	name := rowName(r.entry)
 	right := ""
-	if r.entry.IsDir {
+	switch {
+	case r.entry.IsDir:
 		name = r.entry.Name + "/"
 		right = fmt.Sprint(r.entry.ItemCount)
-	} else {
+	case r.entry.IsImage:
+		badge, badgeColor = kindstyle.ImageStyle()
+	default:
 		badge, badgeColor = kindstyle.Badge(r.kind)
 	}
 

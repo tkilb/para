@@ -32,6 +32,16 @@ var styles = map[store.Kind]struct {
 	store.KindLink:     {"link", lipgloss.Color("111")},
 }
 
+// ImageBadge is the badge of a PNG image, which has no kind property. It is
+// right-aligned in the badge width, to set it apart from the note kinds.
+const ImageBadge = " IMG"
+
+// imageColor is the color of ImageBadge.
+var imageColor = lipgloss.Color("13")
+
+// ImageStyle returns the badge and color of a PNG image.
+func ImageStyle() (string, lipgloss.Color) { return ImageBadge, imageColor }
+
 // addedColor is the color of a kind the config added without one.
 var addedColor = lipgloss.Color("7")
 

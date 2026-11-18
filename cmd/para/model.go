@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strings"
 	"time"
 
@@ -10,11 +11,13 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/tkilb/para/internal/attach"
 	"github.com/tkilb/para/internal/browser"
 	"github.com/tkilb/para/internal/clip"
 	"github.com/tkilb/para/internal/config"
 	"github.com/tkilb/para/internal/gitsync"
 	"github.com/tkilb/para/internal/glossary"
+	"github.com/tkilb/para/internal/imgpreview"
 	"github.com/tkilb/para/internal/links"
 	"github.com/tkilb/para/internal/store"
 	"github.com/tkilb/para/internal/ui/clipform"
@@ -147,6 +150,11 @@ var contentBindings = []statusbar.Binding{
 }
 
 type model struct {
+	// imageClip reads an image from the system clipboard, and imageProto is
+	// how the terminal draws an image.
+	imageClip  attach.Source
+	imageProto imgpreview.Protocol
+
 	store   store.Store
 	focus   panelID
 	para    para.Model
@@ -256,6 +264,7 @@ type shownNote struct {
 
 func initialModel(s store.Store) model {
 	return model{
+		imageClip: attach.NewClipboard(), imageProto: imgpreview.Detect(os.Getenv),
 		store: s, focus: panelPARA, para: para.New(s),
 		content: content.New(), info: info.New(), related: related.New(), title: title.New(), history: &undo.Stack{}, purged: map[string]bool{},
 		syncGate: gitsync.NewGate(syncDebounce), helpSearch: helppopup.NoSearch, sources: config.DefaultSources, writeClipboard: clipboard.WriteAll, fetcher: clip.NewFetcher(), openURL: browser.Open,
@@ -285,6 +294,9 @@ func (m model) syncSelection() model {
 		m.related = m.related.Clear()
 		m.info = m.info.ShowDir(entry.Rel, entry.Name, entry.ItemCount)
 		return m
+	}
+	if entry.IsImage {
+		return m.showImage(entry)
 	}
 	m.related = m.related.Show(entry.Rel, m.links.References(entry.Rel), m.links.ReferencedBy(entry.Rel))
 	m = m.conformNote(entry)
@@ -527,6 +539,8 @@ func (m model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m, cmd = m.startQuickAdd()
 	case "I":
 		m, cmd = m.importKey()
+	case "C":
+		m = m.pasteImage()
 	case "B":
 		m, cmd = m.openNotebookPicker()
 	case "M":

@@ -129,6 +129,7 @@ Add your own kinds, or change how these look, with the `kinds` list in the confi
 | `?` | Help for the focused panel |
 | `0`-`4`, `Tab` | Focus a panel |
 | `B` | Choose the notebook to open |
+| `C` | Paste an image from the clipboard as a PNG in the folder PARA shows (see Images). `u` undoes it |
 | `ctrl+f` | Find a note by path (fuzzy). Results are ranked: the whole file name, then names that start with what you typed, then names where it starts a word, then names that contain it, then scattered letters in the name, then matches only in a folder; shorter names first. The folders are drawn grey |
 | `ctrl+/` or `F` | Search text in the notes of the notebook, as grep -i does, limited by two filters above the list: **Space** (All or one of the five PARA folders) and **Dir** (a path inside the space; from the notebook root when the space is All). Both start at the folder PARA shows. `tab` / `shift+tab` move between the query, Space and Dir; in Space, `←` `→` or `space` change it. Type words: type words, and every line holding all of them, exactly and ignoring case, is listed with its note, line and column and a preview of the note beside it. `↑` `↓` move, `pgup` `pgdown` page, `ctrl+d` `ctrl+u` scroll the preview, `enter` opens the note at the line, `esc` cancels |
 | `s` | Open the scratch pad, `_scratch.md` in the notebook root, in `$EDITOR` (always edit mode; the editor creates the file when you save) |
@@ -196,6 +197,16 @@ echo "an idea" | para add --kind idea
 
 It saves into the notebook the interface would open. Run `para add -h` for the flags.
 
+## Images
+
+para keeps images as plain `.png` files in the notebook. Nothing is added to a note, so a notebook still opens unchanged in any editor.
+
+- **Adding one.** `C` saves the image on the clipboard in the folder PARA shows, named for the moment it was saved, such as `2026-11-18 09-05-07.png` (a number is added if that name is taken), and puts the cursor on it. `u` undoes it. Only raw image data counts: a screenshot, or an image copied from a browser or an app. A file copied in a file manager does not.
+- **Formats.** PNG is the only format stored. A JPEG, WebP or AVIF image on the clipboard is converted to PNG first. An image over 32 MB or about 50 megapixels, or one that is damaged, is refused and nothing is written.
+- **Platforms.** macOS needs nothing installed. On Linux, para uses `wl-paste` (package `wl-clipboard`) in a Wayland session and `xclip` in an X11 one, and tells you which to install when neither is found.
+- **In PARA.** An image row has the badge `IMG` and no kind. `r` renames it (the `.png` stays), `y` `x` `p` `d` `D` work as on notes, and `u` undoes them. `K`, `m` `m`, `e` and `o` are for notes and do nothing for an image. Images are not searched and do not count as notes.
+- **The preview.** With an image selected, Content shows it scaled to fit, never enlarged, with its size in pixels and bytes below. In Kitty and Ghostty it is drawn with the Kitty graphics protocol, and in iTerm2 with its inline image protocol. Everywhere else, including inside tmux or screen, it is drawn with colored half-block characters, which needs a true color terminal. Set `PARA_IMAGE_PROTOCOL` to `kitty`, `iterm2` or `blocks` to choose yourself, for example when a terminal that supports an image protocol is not detected. In a terminal that uses a protocol, a popup drawn over Content may be covered by the image.
+
 ## Importing with an agent
 
 `I` turns a meeting transcript, a Confluence page, a Slack thread, a web page or any UTF-8 text file into a folder of notes. It is off until you set `digest.enabled: true`, which also means you accept that imported content is sent to the `digest.command` (the Claude Code CLI, which uses your own login; para handles no API key).
@@ -225,7 +236,7 @@ It saves into the notebook the interface would open. Run `para add -h` for the f
 go test ./...
 ```
 
-The tests cover the engine packages (storage, state, undo, config, intake, the import engine and its source readers, the command line and the link index). None calls a real model or the network. The interface has no automated tests; each change ships with a manual check instead, such as `docs/import-qa.md` for the import.
+The tests cover the engine packages (storage, state, undo, config, intake, the import engine and its source readers, image conversion, clipboard paste and preview drawing, the command line and the link index). None calls a real model or the network. The interface has no automated tests; each change ships with a manual check instead, such as `docs/import-qa.md` for the import and `docs/image-qa.md` for images.
 
 ## More
 

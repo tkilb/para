@@ -162,11 +162,11 @@ func (m Model) Reload() Model {
 func (m Model) load(i int) Model {
 	t := m.nearestExisting(i, m.tabs[i])
 	dir := filepath.Join(tabDefs[i].dir, t.dir)
-	entries, err := m.store.List(dir, store.ListOptions{ShowHidden: m.showHidden})
+	entries, err := m.store.List(dir, m.ListOptions())
 	rows := make([]row, len(entries))
 	for j, e := range entries {
 		rows[j] = row{entry: e, kind: store.KindUnset}
-		if !e.IsDir {
+		if !e.IsDir && !e.IsImage {
 			rows[j].overdue = m.now != nil && store.DailyOverdue(e.Rel, m.retentionDays, m.now())
 			if n, err := m.store.ReadNote(e.Rel); err == nil {
 				rows[j].kind = n.Kind
@@ -368,15 +368,16 @@ func (m Model) Selected() (store.Entry, bool) {
 }
 
 // ListOptions is how the panel lists a folder, so another panel can list the
-// same entries.
+// same entries. PNG images are listed beside the notes.
 func (m Model) ListOptions() store.ListOptions {
-	return store.ListOptions{ShowHidden: m.showHidden}
+	return store.ListOptions{ShowHidden: m.showHidden, IncludeImages: true}
 }
 
-// SelectedNote returns the entry under the cursor when it is a note.
+// SelectedNote returns the entry under the cursor when it is a note, not a
+// folder or an image.
 func (m Model) SelectedNote() (store.Entry, bool) {
 	t := m.tabs[m.active]
-	if t.cursor >= len(t.rows) || t.rows[t.cursor].entry.IsDir {
+	if t.cursor >= len(t.rows) || t.rows[t.cursor].entry.IsDir || t.rows[t.cursor].entry.IsImage {
 		return store.Entry{}, false
 	}
 	return t.rows[t.cursor].entry, true
@@ -475,10 +476,14 @@ func matches(e store.Entry, query string) bool {
 	return strings.Contains(strings.ToLower(rowName(e)), strings.ToLower(query))
 }
 
-// rowName is the name shown for an entry: notes without ".md".
+// rowName is the name shown for an entry: notes without ".md" and images
+// without ".png".
 func rowName(e store.Entry) string {
-	if e.IsDir {
+	switch {
+	case e.IsDir:
 		return e.Name
+	case e.IsImage:
+		return e.Name[:len(e.Name)-len(".png")]
 	}
 	return strings.TrimSuffix(e.Name, ".md")
 }

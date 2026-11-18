@@ -63,6 +63,15 @@ type visualState struct {
 	base   map[int]bool
 }
 
+// Preview is a picture for Content to show in place of text. Render draws it
+// into a box of cols x rows cells, one string per row. Cleanup is written
+// before the next thing shown, to remove a picture the terminal still holds.
+type Preview struct {
+	Render  func(cols, rows int) []string
+	Caption string
+	Cleanup string
+}
+
 // Model is the Content panel state. Methods return updated copies.
 type Model struct {
 	// rel identifies the note shown, so switching notes resets the scroll
@@ -117,6 +126,13 @@ type Model struct {
 	places map[string]int
 
 	width, height int
+
+	// preview is the picture shown in place of text, and previewRows its rows
+	// at the current size. staleImage is what to write to remove the
+	// picture once something else is shown.
+	preview     *Preview
+	previewRows []string
+	staleImage  string
 }
 
 // New returns an empty panel.
@@ -127,7 +143,14 @@ func New() Model {
 // Resize sets the content area size, re-wrapping when the width changed.
 func (m Model) Resize(width, height int) Model {
 	rewrap := width != m.width
+	resized := rewrap || max(height, 1) != m.height
 	m.width, m.height = width, max(height, 1)
+	if m.preview != nil {
+		if resized {
+			m.previewRows = m.preview.Render(m.width, m.height)
+		}
+		return m
+	}
 	if rewrap {
 		m = m.fromRendered().wrap()
 	}
@@ -151,6 +174,7 @@ func (m Model) LoadNote(rel string, front []string, text string) Model {
 
 // load is Load for text that may be a folder listing (items not nil).
 func (m Model) load(rel string, front []string, text string, items []ListItem) Model {
+	m = m.dropPreview()
 	text = textsafe.Sanitize(strings.Trim(text, "\r\n"))
 	front = cleanFront(front)
 	unchanged := rel == m.rel && text == m.text && slices.Equal(front, m.front) && m.err == nil && items == nil && m.listing == nil && m.rendered != nil
@@ -191,6 +215,7 @@ func (m Model) LoadListing(rel string, items []ListItem) Model {
 
 // Fail shows err in place of the note at rel.
 func (m Model) Fail(rel string, err error) Model {
+	m = m.dropPreview()
 	m = m.remember()
 	m = m.reset()
 	m.rel, m.err = rel, err
@@ -229,7 +254,32 @@ func (m Model) remember() Model {
 
 // reset drops everything shown, keeping the size and the remembered places.
 func (m Model) reset() Model {
-	return Model{width: m.width, height: m.height, places: m.places, plain: m.plain}
+	m = m.dropPreview()
+	return Model{width: m.width, height: m.height, places: m.places, plain: m.plain, staleImage: m.staleImage}
+}
+
+// LoadPreview shows a picture for rel in place of text. A picture shown
+// before is replaced.
+func (m Model) LoadPreview(rel string, p Preview) Model {
+	m = m.remember()
+	m = m.reset()
+	m.rel, m.preview = rel, &p
+	m.staleImage = ""
+	m.previewRows = p.Render(m.width, m.height)
+	return m
+}
+
+// dropPreview forgets the picture shown, if any, and remembers what removes
+// it from the terminal.
+func (m Model) dropPreview() Model {
+	if m.preview == nil {
+		return m
+	}
+	if m.preview.Cleanup != "" {
+		m.staleImage = m.preview.Cleanup
+	}
+	m.rel, m.preview, m.previewRows = "", nil, nil
+	return m
 }
 
 // SetFront shows the given frontmatter lines (fences included) above the text,
@@ -534,6 +584,9 @@ func (m Model) View(outerWidth, outerHeight int, focused bool) string {
 	switch {
 	case m.err != nil:
 		content = errorStyle.Render(ansi.Truncate(m.err.Error(), width, "…"))
+	case m.preview != nil:
+		content = strings.Join(m.previewRows, "\n")
+		footer.Left = m.preview.Caption
 	case m.rel != "" && len(m.lines) == 0:
 		content = dimStyle.Render("(empty note)")
 	case m.Rendered():
@@ -558,6 +611,9 @@ func (m Model) View(outerWidth, outerHeight int, focused bool) string {
 		}
 		footer.Left = m.status()
 	}
+	// The cleanup goes on the first row, which changed when the picture left,
+	// so the terminal removes the picture as that row is drawn.
+	content = m.staleImage + content
 	return panel.Frame("0 Content", content, width, height, focused, footer)
 }
 

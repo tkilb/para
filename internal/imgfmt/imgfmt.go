@@ -18,7 +18,8 @@ import (
 )
 
 const (
-	defaultMaxBytes  = 32 << 20 // the largest input accepted
+	// MaxBytes is the largest input accepted.
+	MaxBytes         = 32 << 20
 	defaultMaxPixels = 50 << 20 // about 50 megapixels
 )
 
@@ -35,7 +36,7 @@ var (
 var limits = struct {
 	maxBytes  int64
 	maxPixels int64
-}{defaultMaxBytes, defaultMaxPixels}
+}{MaxBytes, defaultMaxPixels}
 
 // supported lists the formats image.Decode names that para accepts.
 var supported = map[string]bool{"png": true, "jpeg": true, "webp": true, "avif": true}

@@ -8,10 +8,13 @@ import (
 )
 
 // RenameRequest is a validated rename of the item at Rel to Name, the new
-// file or folder name (a note's name includes .md).
+// file or folder name (a note's name includes .md, an image's .png).
 type RenameRequest struct {
 	Rel   string
 	IsDir bool
+	// IsImage is set for a PNG image, which is renamed on its own: no title
+	// property and no references to update.
+	IsImage bool
 	// Typed is what the user typed; Name is it cleaned.
 	Typed, Name string
 }
@@ -24,7 +27,10 @@ func (m Model) askRename() (Model, Effect) {
 		return m, Effect{}
 	}
 	name := e.Name
-	if !e.IsDir {
+	switch {
+	case e.IsImage:
+		name = rowName(e)
+	case !e.IsDir:
 		name = strings.TrimSuffix(strings.TrimSuffix(name, ".md"), ".MD")
 	}
 	return m, Effect{Prompt: &Prompt{Title: "Rename", Initial: name, Op: OpRename}}
@@ -37,12 +43,16 @@ func (m Model) rename(text string) (Model, Effect) {
 	if !ok {
 		return m, Effect{}
 	}
-	name, err := store.CleanRenamedName(text, e.IsDir)
+	clean := func() (string, error) { return store.CleanRenamedName(text, e.IsDir) }
+	if e.IsImage {
+		clean = func() (string, error) { return store.CleanRenamedImageName(text) }
+	}
+	name, err := clean()
 	if err != nil {
 		return m, Effect{Err: fmt.Errorf("rename: %w", err)}
 	}
 	if name == e.Name {
 		return m, Effect{Info: "The name is unchanged."}
 	}
-	return m, Effect{Rename: &RenameRequest{Rel: e.Rel, IsDir: e.IsDir, Typed: text, Name: name}}
+	return m, Effect{Rename: &RenameRequest{Rel: e.Rel, IsDir: e.IsDir, IsImage: e.IsImage, Typed: text, Name: name}}
 }

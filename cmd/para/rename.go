@@ -10,6 +10,7 @@ import (
 	"github.com/tkilb/para/internal/store"
 	"github.com/tkilb/para/internal/ui/para"
 	"github.com/tkilb/para/internal/ui/popup"
+	"github.com/tkilb/para/internal/undo"
 )
 
 // startRename carries out a rename asked for by the PARA panel. When other
@@ -26,7 +27,7 @@ func (m model) startRename(req *para.RenameRequest) model {
 // doRename renames, records one undo entry, moves the cursor to the renamed
 // item and reports anything that could not be updated.
 func (m model) doRename(req *para.RenameRequest) model {
-	act, res, err := links.Rename(m.store, m.links, req.Rel, req.IsDir, req.Typed)
+	act, res, err := m.renameAction(req)
 	if err != nil {
 		return m.notify(popup.Error, capitalize(fmt.Sprintf("rename failed: %s.", err)))
 	}
@@ -39,6 +40,16 @@ func (m model) doRename(req *para.RenameRequest) model {
 	}
 	m = m.refreshLinks()
 	return m.warnRename(res)
+}
+
+// renameAction does the rename. An image is only moved, because it has no
+// title and no note links to it.
+func (m model) renameAction(req *para.RenameRequest) (undo.Action, links.RenameResult, error) {
+	if !req.IsImage {
+		return links.Rename(m.store, m.links, req.Rel, req.IsDir, req.Typed)
+	}
+	act, err := m.store.Move(req.Rel, filepath.Join(filepath.Dir(req.Rel), req.Name))
+	return act, links.RenameResult{}, err
 }
 
 // warnRename reports what a rename could not update.
