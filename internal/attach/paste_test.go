@@ -52,6 +52,9 @@ func newStore(t *testing.T) (string, store.Store) {
 	return root, store.NewMarkdown(root)
 }
 
+// newStoreAt opens the notebook at root.
+func newStoreAt(root string) store.Store { return store.NewMarkdown(root) }
+
 func TestPasteSavesADatedPNG(t *testing.T) {
 	root, s := newStore(t)
 	data := tinyPNG(t)
