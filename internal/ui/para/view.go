@@ -185,8 +185,8 @@ func (m Model) body(t tabState, width, height int, focused bool) string {
 	return strings.Join(lines, "\n")
 }
 
-// bundleMark stands before the number of images bundled with a note, on its
-// row. It is one column wide in every terminal and common font.
+// bundleMark is shown on the row of a note that has bundled images. The
+// number of images is in the Content tabs, not on the row. It is one column wide in every terminal and common font.
 const bundleMark = "❖"
 
 // renderRow draws one row: a marker column (the bar, or the bullet of a
@@ -220,8 +220,8 @@ func renderRow(r row, width int, cursor bool, mk mark, marked bool, query string
 		badge, badgeColor = kindstyle.ImageStyle()
 	default:
 		badge, badgeColor = kindstyle.Badge(r.kind)
-		if n := r.entry.Attachments; n > 0 {
-			right = fmt.Sprintf("%s%d", bundleMark, n)
+		if r.entry.Attachments > 0 {
+			right = bundleMark
 		}
 	}
 

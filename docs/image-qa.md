@@ -47,7 +47,7 @@ The agent import can stay off (`digest.enabled` unset) for every step here.
 | # | Step | Expect |
 | --- | --- | --- |
 | 17 | `y` on an image, move onto `note.md`, `p` | A question: bundle the image with the note, or paste it beside. `esc` cancels and the buffer is kept. |
-| 18 | Answer `y` | `note.assets/` appears on disk with the image; the original stays (a yank copies). PARA shows no `.assets` row; `note` shows `❖1`, and the title of Content reads `Content - name`. |
+| 18 | Answer `y` | `note.assets/` appears on disk with the image; the original stays (a yank copies). PARA shows no `.assets` row; `note` shows `❖`, and the title of Content reads `Content - name`. |
 | 19 | `u`, then `ctrl+r` | The image leaves the folder and the folder goes with it; then both return. |
 | 20 | Repeat with `x` instead of `y` | The image is moved into the folder (a cut moves it). `u` puts it back. |
 | 21 | Yank an image, move onto a note, `p`, answer `n` | The image is pasted beside the note, as a plain paste. |
@@ -89,16 +89,16 @@ The agent import can stay off (`digest.enabled` unset) for every step here.
 | 47 | Move down the rows | Each image is previewed as the cursor reaches it. |
 | 48 | Press `←` | Back in the parent folder with the cursor on the note, not on another row. |
 | 49 | On a note with no bundled images, press `Enter` | Focus moves to Content, as before. |
-| 50 | Inside the folder: `r` an image, then `d` it, then `u` twice | The rename and the trash each undo; the `❖N` and the tabs follow the count. |
+| 50 | Inside the folder: `r` an image, then `d` it, then `u` twice | The rename and the trash each undo; the tabs follow the count and the `❖` goes when none are left. |
 | 51 | Inside the folder: `y` an image, `←`, move to another folder, `p` | The image is copied out as a loose image; the bundle keeps its own. |
 | 52 | Inside the folder: `I` with an image file path | The image is saved in the bundle. |
-| 53 | Delete every image in the folder, then `←` | The note row loses its `❖N`, and `Enter` on it moves to Content again. |
+| 53 | Delete every image in the folder, then `←` | The note row loses its `❖`, and `Enter` on it moves to Content again. |
 
 ## The bundle stays with the note
 
 | # | Step | Expect |
 | --- | --- | --- |
-| 54 | `r` on a bundled note, type a new name | `.assets` is renamed to match; `❖N` stays; `u` restores both. |
+| 54 | `r` on a bundled note, type a new name | `.assets` is renamed to match; `❖` stays; `u` restores both. |
 | 55 | `y` on the note, move to another folder, `p` | The note and its `.assets` copy arrive together, with the images as separate files. |
 | 56 | `x` the note, `p` in another folder | Both move; the old folder is gone. |
 | 57 | `d` on the note, then `u` | Both go to the trash and both return. `D` deletes both permanently, after asking. |
