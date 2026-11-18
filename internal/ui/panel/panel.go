@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 )
 
 const leadDashes = 2
@@ -228,7 +229,12 @@ func topBorderTabs(number rune, tabs []Tab, width int, focused bool, lineStyle l
 	if shown == nil {
 		return topBorder(prefix+tabsPlain(tabs), width, focused, lineStyle)
 	}
+	return renderTabsBorder(prefix, shown, budget, focused, lineStyle)
+}
 
+// renderTabsBorder draws the top border line for tabs that fit the budget
+// columns left after the lead dashes and the prefix.
+func renderTabsBorder(prefix string, shown []Tab, budget int, focused bool, lineStyle lipgloss.Style) string {
 	inactive := lipgloss.NewStyle()
 	active := lipgloss.NewStyle().Bold(true).Foreground(activeTabColor)
 
@@ -326,7 +332,7 @@ func isNumber(s string) bool {
 func tabsWidth(tabs []Tab) int {
 	total := len(tabSeparator) * max(len(tabs)-1, 0)
 	for _, t := range tabs {
-		total += len(t.Label)
+		total += ansi.StringWidth(t.Label)
 	}
 	return total
 }

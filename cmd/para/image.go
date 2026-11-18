@@ -8,7 +8,9 @@ import (
 	"github.com/tkilb/para/internal/attach"
 	"github.com/tkilb/para/internal/imgpreview"
 	"github.com/tkilb/para/internal/store"
+	"github.com/tkilb/para/internal/textsafe"
 	"github.com/tkilb/para/internal/ui/content"
+	"github.com/tkilb/para/internal/ui/panel"
 	"github.com/tkilb/para/internal/ui/popup"
 )
 
@@ -46,16 +48,18 @@ func (m model) bundledImages(entry store.Entry) []string {
 	return names
 }
 
-// bundleLabels are the Content tab labels for the note shown: the note, then
-// a number for each bundled image. Numbers keep the labels short and plain; the
-// name of the open image is in the caption.
-func (m model) bundleLabels() []string {
+// bundleLabels are the Content tabs for the note shown: "Content" for the note
+// text, then one for each bundled image named for its file without ".png".
+// Where the title is too narrow for every name, the tabs that are not open
+// shrink to "C" and a number, and the open name is cut to fit.
+func (m model) bundleLabels() []panel.TabLabel {
 	if len(m.bundle) == 0 {
 		return nil
 	}
-	labels := []string{"note"}
-	for i := range m.bundle {
-		labels = append(labels, strconv.Itoa(i+1))
+	labels := []panel.TabLabel{{Full: "Content", Short: "C"}}
+	for i, name := range m.bundle {
+		stem := textsafe.SingleLine(name[:len(name)-len(".png")])
+		labels = append(labels, panel.TabLabel{Full: stem, Short: strconv.Itoa(i + 1)})
 	}
 	return labels
 }
