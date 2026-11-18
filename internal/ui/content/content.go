@@ -133,6 +133,11 @@ type Model struct {
 	preview     *Preview
 	previewRows []string
 	staleImage  string
+
+	// tabLabels are the tabs drawn in the title, and tabActive the one shown.
+	// They belong to the caller, so they survive a reload.
+	tabLabels []string
+	tabActive int
 }
 
 // New returns an empty panel.
@@ -255,7 +260,16 @@ func (m Model) remember() Model {
 // reset drops everything shown, keeping the size and the remembered places.
 func (m Model) reset() Model {
 	m = m.dropPreview()
-	return Model{width: m.width, height: m.height, places: m.places, plain: m.plain, staleImage: m.staleImage}
+	return Model{width: m.width, height: m.height, places: m.places, plain: m.plain, staleImage: m.staleImage,
+		tabLabels: m.tabLabels, tabActive: m.tabActive}
+}
+
+// SetTabs shows labels as tabs in the panel title, with the one at active
+// highlighted, or no tabs when labels is empty. The caller decides what each
+// tab shows; the panel only draws them.
+func (m Model) SetTabs(labels []string, active int) Model {
+	m.tabLabels, m.tabActive = labels, active
+	return m
 }
 
 // LoadPreview shows a picture for rel in place of text. A picture shown
@@ -614,6 +628,13 @@ func (m Model) View(outerWidth, outerHeight int, focused bool) string {
 	// The cleanup goes on the first row, which changed when the picture left,
 	// so the terminal removes the picture as that row is drawn.
 	content = m.staleImage + content
+	if len(m.tabLabels) > 0 {
+		tabs := make([]panel.Tab, len(m.tabLabels))
+		for i, label := range m.tabLabels {
+			tabs[i] = panel.Tab{Label: label, Active: i == m.tabActive}
+		}
+		return panel.FrameTabs('0', tabs, content, width, height, focused, footer)
+	}
 	return panel.Frame("0 Content", content, width, height, focused, footer)
 }
 

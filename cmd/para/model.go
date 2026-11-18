@@ -154,6 +154,11 @@ type model struct {
 	// how the terminal draws an image.
 	imageClip  attach.Source
 	imageProto imgpreview.Protocol
+	// bundle holds the file names of the images bundled with the note shown,
+	// and bundleTab says which Content tab is open: 0 is the note and i is
+	// bundle[i-1].
+	bundle    []string
+	bundleTab int
 
 	store   store.Store
 	focus   panelID
@@ -276,9 +281,16 @@ func initialModel(s store.Store) model {
 // reading the note once, and only when the selection or the file changed.
 // A folder shows its name and item count in Info and its contents in Content.
 func (m model) syncSelection() model {
+	return m.loadSelection().syncTabs()
+}
+
+// loadSelection is syncSelection without the tabs. A different selection
+// forgets the bundle tab; the note branch sets the bundle again.
+func (m model) loadSelection() model {
 	entry, ok := m.para.Selected()
 	if !ok {
 		m.content, m.info, m.shown, m.shownFront = m.content.Clear(), m.info.Clear(), shownNote{}, nil
+		m.bundle, m.bundleTab = nil, 0
 		m.related = m.related.Clear()
 		m.title = m.title.Set("")
 		return m
@@ -288,6 +300,7 @@ func (m model) syncSelection() model {
 		return m
 	}
 	m.shown, m.shownFront = now, nil
+	m.bundle, m.bundleTab = nil, 0
 
 	if entry.IsDir {
 		m.title = m.title.SetDir(entry.Name)
@@ -311,7 +324,8 @@ func (m model) syncSelection() model {
 	m.title = m.title.SetNote(note.Kind, note.Title)
 	m.shownFront = frontLines(note)
 	m.content = m.content.LoadNote(entry.Rel, m.wantFront(), note.Body)
-	m.info = m.info.ShowNote(entry.Rel, note, m.bundledImages(entry))
+	m.info = m.info.ShowNote(entry.Rel, note)
+	m.bundle = m.bundledImages(entry)
 	return m
 }
 
@@ -627,6 +641,10 @@ func (m model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m = m.yankContent()
 			break
 		}
+		if (key == "[" || key == "]") && m.focus == panelContent && len(m.bundle) > 0 {
+			m = m.stepBundleTab(map[string]int{"[": -1, "]": 1}[key])
+			break
+		}
 		if (key == "r" || key == "e") && m.focus == panelContent {
 			// Content shows the note under the PARA cursor, so renaming or
 			// editing it is PARA's rename or edit.
@@ -663,6 +681,9 @@ func (m model) bindings() []statusbar.Binding {
 		local = relatedBindings
 	case panelContent:
 		local = contentBindings
+		if len(m.bundle) > 0 {
+			local = append([]statusbar.Binding{{Key: "[ ]", Label: "image tabs"}}, local...)
+		}
 	case panelInfo:
 		local = infoBindings
 	}

@@ -302,7 +302,7 @@ func tabLayouts(tabs []Tab) [][]Tab {
 	var activeOnly []Tab
 	for i, t := range tabs {
 		compact[i] = t
-		if !t.Active && t.Label != "" {
+		if !t.Active && t.Label != "" && !isNumber(t.Label) {
 			compact[i].Label = t.Label[:1]
 		}
 		if t.Active {
@@ -310,6 +310,17 @@ func tabLayouts(tabs []Tab) [][]Tab {
 		}
 	}
 	return [][]Tab{compact, activeOnly}
+}
+
+// isNumber reports whether s is only digits, a label that shrinking would
+// make wrong: "12" is not "1".
+func isNumber(s string) bool {
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return s != ""
 }
 
 func tabsWidth(tabs []Tab) int {

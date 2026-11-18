@@ -47,7 +47,7 @@ The agent import can stay off (`digest.enabled` unset) for every step here.
 | # | Step | Expect |
 | --- | --- | --- |
 | 17 | `y` on an image, move onto `note.md`, `p` | A question: bundle the image with the note, or paste it beside. `esc` cancels and the buffer is kept. |
-| 18 | Answer `y` | `note.assets/` appears on disk with the image; the original stays (a yank copies). PARA shows no `.assets` row; `note` shows `+1`. Info lists the image (scroll Info if needed). |
+| 18 | Answer `y` | `note.assets/` appears on disk with the image; the original stays (a yank copies). PARA shows no `.assets` row; `note` shows `+1`, and the title of Content reads `note - 1`. |
 | 19 | `u`, then `ctrl+r` | The image leaves the folder and the folder goes with it; then both return. |
 | 20 | Repeat with `x` instead of `y` | The image is moved into the folder (a cut moves it). `u` puts it back. |
 | 21 | Yank an image, move onto a note, `p`, answer `n` | The image is pasted beside the note, as a plain paste. |
@@ -56,22 +56,37 @@ The agent import can stay off (`digest.enabled` unset) for every step here.
 | 24 | Yank an image, put the cursor on a folder or another image, `p` | No question: a plain paste. |
 | 25 | Bundle the same image twice into one note | The second is `name 2.png`; nothing is replaced. |
 
+## Viewing a bundle (tabs in Content)
+
+| # | Step | Expect |
+| --- | --- | --- |
+| 26 | Put the cursor on a note with two bundled images (PARA focused) | The title of pane `[0]` reads `[0]-note - 1 - 2`, with `note` highlighted. Content shows the note text. A note with no images shows `[0]-Content` as before. |
+| 27 | Press `[` or `]` with PARA focused | The PARA tab changes, not the Content tab. |
+| 28 | Press `Enter` | Focus moves to Content, and the status bar starts with `[ ] image tabs`. |
+| 29 | Press `]` | Tab `1` is highlighted and the first image is drawn, scaled; the footer reads `1/2 name.png, W x H px, size`. |
+| 30 | Press `]` again, then once more | Tab `2` and its image, then back to `note` and the note text at the place you left it. |
+| 31 | Press `[` on the `note` tab | It wraps to the last image. |
+| 32 | `esc`, then move to another note and back | Focus is back in PARA; coming back, the `note` tab is open. |
+| 33 | In Kitty or iTerm2, switch between image tabs and the note tab | No leftover pixels of an image on the note tab. |
+| 34 | Bundle one more image with `p` while the note is selected | The tabs gain a number and the view returns to the `note` tab. |
+| 35 | With 10 or more images bundled | The numbers stay whole (`10`, not `1`) in the title. |
+
 ## The bundle stays with the note
 
 | # | Step | Expect |
 | --- | --- | --- |
-| 26 | `r` on a bundled note, type a new name | `.assets` is renamed to match; `+N` stays; `u` restores both. |
-| 27 | `y` on the note, move to another folder, `p` | The note and its `.assets` copy arrive together, with the images as separate files. |
-| 28 | `x` the note, `p` in another folder | Both move; the old folder is gone. |
-| 29 | `d` on the note, then `u` | Both go to the trash and both return. `D` deletes both permanently, after asking. |
-| 30 | Make the target `.assets` folder exist first (create `other.assets/` by hand) and move or copy a bundled note to the name `other.md` | The operation fails with "already exists" and nothing is moved or copied. |
-| 31 | Create a folder `lonely.assets/` with no `lonely.md` beside it | It is listed as an ordinary folder. |
+| 36 | `r` on a bundled note, type a new name | `.assets` is renamed to match; `+N` stays; `u` restores both. |
+| 37 | `y` on the note, move to another folder, `p` | The note and its `.assets` copy arrive together, with the images as separate files. |
+| 38 | `x` the note, `p` in another folder | Both move; the old folder is gone. |
+| 39 | `d` on the note, then `u` | Both go to the trash and both return. `D` deletes both permanently, after asking. |
+| 40 | Make the target `.assets` folder exist first (create `other.assets/` by hand) and move or copy a bundled note to the name `other.md` | The operation fails with "already exists" and nothing is moved or copied. |
+| 41 | Create a folder `lonely.assets/` with no `lonely.md` beside it | It is listed as an ordinary folder. |
 
 ## Other actions
 
 | # | Step | Expect |
 | --- | --- | --- |
-| 32 | `r` on an image, type `diagram` | It becomes `diagram.png`; `u` restores the name. Typing `diagram.png` gives the same. |
-| 33 | `y`, move to another folder, `p` | A copy is made; pasting twice in one folder gives `name_1.png`, `name_2.png`. |
-| 34 | `d` on an image, then `u` | It goes to the trash, then returns. |
-| 35 | `ctrl+f` and `ctrl+/` | Images are not offered as notes and are not searched. |
+| 42 | `r` on an image, type `diagram` | It becomes `diagram.png`; `u` restores the name. Typing `diagram.png` gives the same. |
+| 43 | `y`, move to another folder, `p` | A copy is made; pasting twice in one folder gives `name_1.png`, `name_2.png`. |
+| 44 | `d` on an image, then `u` | It goes to the trash, then returns. |
+| 45 | `ctrl+f` and `ctrl+/` | Images are not offered as notes and are not searched. |

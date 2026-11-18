@@ -1,6 +1,10 @@
 package main
 
 import (
+	"fmt"
+	"path"
+	"strconv"
+
 	"github.com/tkilb/para/internal/attach"
 	"github.com/tkilb/para/internal/imgpreview"
 	"github.com/tkilb/para/internal/store"
@@ -42,27 +46,80 @@ func (m model) bundledImages(entry store.Entry) []string {
 	return names
 }
 
+// bundleLabels are the Content tab labels for the note shown: the note, then
+// a number for each bundled image. Numbers keep the labels short and plain; the
+// name of the open image is in the caption.
+func (m model) bundleLabels() []string {
+	if len(m.bundle) == 0 {
+		return nil
+	}
+	labels := []string{"note"}
+	for i := range m.bundle {
+		labels = append(labels, strconv.Itoa(i+1))
+	}
+	return labels
+}
+
+// syncTabs draws the tabs for the bundle of the note shown, or none.
+func (m model) syncTabs() model {
+	m.content = m.content.SetTabs(m.bundleLabels(), m.bundleTab)
+	return m
+}
+
+// stepBundleTab opens the next (delta 1) or previous (delta -1) Content tab,
+// wrapping around as the PARA tabs do. Tab 0 is the note and the others are its
+// bundled images.
+func (m model) stepBundleTab(delta int) model {
+	entry, ok := m.para.SelectedNote()
+	if !ok || len(m.bundle) == 0 {
+		return m
+	}
+	n := len(m.bundle) + 1
+	m.bundleTab = (m.bundleTab + delta + n) % n
+	if m.bundleTab == 0 {
+		note, err := m.store.ReadNote(entry.Rel)
+		if err != nil {
+			m.content = m.content.Fail(entry.Rel, err)
+		} else {
+			m.content = m.content.LoadNote(entry.Rel, m.wantFront(), note.Body)
+		}
+		return m.syncTabs()
+	}
+	name := m.bundle[m.bundleTab-1]
+	label := fmt.Sprintf("%d/%d %s", m.bundleTab, len(m.bundle), name)
+	m.content = m.imagePreview(path.Join(store.SidecarOf(entry.Rel), name), label)
+	return m.syncTabs()
+}
+
+// imagePreview returns Content showing a scaled preview of the image at rel.
+// label, when set, starts the caption.
+func (m model) imagePreview(rel, label string) content.Model {
+	file, err := m.store.Path(rel)
+	if err != nil {
+		return m.content.Fail(rel, err)
+	}
+	pic, err := imgpreview.Open(file)
+	if err != nil {
+		return m.content.Fail(rel, err)
+	}
+	caption := pic.Caption()
+	if label != "" {
+		caption = label + ", " + caption
+	}
+	proto := m.imageProto
+	return m.content.LoadPreview(rel, content.Preview{
+		Render:  func(cols, rows int) []string { return pic.Render(proto, cols, rows) },
+		Caption: caption,
+		Cleanup: imgpreview.Cleanup(proto),
+	})
+}
+
 // showImage fills Content with a scaled preview of the image entry, and
 // clears the panels that only describe notes.
 func (m model) showImage(entry store.Entry) model {
 	m.related = m.related.Clear()
 	m.info = m.info.Clear()
 	m.title = m.title.Set(entry.Name)
-	path, err := m.store.Path(entry.Rel)
-	if err != nil {
-		m.content = m.content.Fail(entry.Rel, err)
-		return m
-	}
-	pic, err := imgpreview.Open(path)
-	if err != nil {
-		m.content = m.content.Fail(entry.Rel, err)
-		return m
-	}
-	proto := m.imageProto
-	m.content = m.content.LoadPreview(entry.Rel, content.Preview{
-		Render:  func(cols, rows int) []string { return pic.Render(proto, cols, rows) },
-		Caption: pic.Caption(),
-		Cleanup: imgpreview.Cleanup(proto),
-	})
+	m.content = m.imagePreview(entry.Rel, "")
 	return m
 }

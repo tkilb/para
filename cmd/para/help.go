@@ -78,6 +78,7 @@ var helpContentBindings = []statusbar.Binding{
 	{Key: "ctrl+d/u", Label: "half page down/up"},
 	{Key: "pgdn/pgup", Label: "page down/up"},
 	{Key: "g/G", Label: "first/last line"},
+	{Key: "[ ]", Label: "previous/next tab when the note has bundled images: the note, then each image"},
 	{Key: "{ }", Label: "previous/next paragraph (blank line)"},
 	{Key: "space", Label: "pick the line and move down"},
 	{Key: "v/V", Label: "select/unselect a range as you move"},
