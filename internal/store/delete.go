@@ -13,7 +13,7 @@ type DirInfo struct {
 	// Items counts every file and folder inside, recursively.
 	Items int
 	// Unlisted counts the items a listing would not show: hidden names,
-	// anything inside a hidden folder, and files that are neither .md notes nor .png images.
+	// anything inside a hidden folder, a note's sidecar folder and what is in it, and files that are neither .md notes nor .png images.
 	Unlisted int
 }
 
@@ -60,16 +60,18 @@ func unlisted(base, p string, d fs.DirEntry) bool {
 	if err != nil {
 		return true
 	}
+	dir := base
 	for _, seg := range strings.Split(rel, string(filepath.Separator)) {
-		if strings.HasPrefix(seg, ".") {
+		if strings.HasPrefix(seg, ".") || ownedSidecar(dir, seg) {
 			return true
 		}
+		dir = filepath.Join(dir, seg)
 	}
 	return !d.IsDir() && !isNote(d.Name()) && !isImage(d.Name())
 }
 
-// Delete permanently removes the file or directory tree at rel. It cannot
-// be undone. A symlink is removed without touching its target. The notebook
+// Delete permanently removes the file or directory tree at rel, and the
+// sidecar folder of a note. It cannot be undone. A symlink is removed without touching its target. The notebook
 // root itself is never deletable, because ResolveInRoot rejects an empty
 // name.
 func (m *Markdown) Delete(rel string) error {
@@ -80,8 +82,14 @@ func (m *Markdown) Delete(rel string) error {
 	if _, err := os.Lstat(path); errors.Is(err, fs.ErrNotExist) {
 		return ErrNotFound
 	}
+	side, hasSide := existingSidecar(path)
 	if err := os.RemoveAll(path); err != nil {
 		return ErrUnreadable
+	}
+	if hasSide {
+		if err := os.RemoveAll(side); err != nil {
+			return ErrUnreadable
+		}
 	}
 	return nil
 }

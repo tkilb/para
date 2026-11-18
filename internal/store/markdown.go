@@ -49,11 +49,22 @@ func (m *Markdown) list(dir string, opts ListOptions, counts bool) ([]Entry, err
 	}
 
 	rel := filepath.Clean(dir)
+	sidecars := sidecarsIn(des)
+	owned := map[string]bool{}
+	for _, side := range sidecars {
+		owned[side] = true
+	}
 	var entries []Entry
 	for _, de := range des {
+		if owned[de.Name()] {
+			continue // a note's sidecar is shown as a count on the note
+		}
 		e, ok := m.entry(filepath.Join(rel, de.Name()), de, opts)
 		if !ok {
 			continue
+		}
+		if side, has := sidecars[de.Name()]; has && counts {
+			e.Attachments = countFiles(filepath.Join(abs, side))
 		}
 		if e.IsDir && counts {
 			children, _ := m.list(e.Rel, opts, false)

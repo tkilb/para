@@ -97,12 +97,29 @@ func (m *Markdown) MakeDir(rel string) (undo.Action, error) {
 }
 
 // Move renames the item at src to dst, never overwriting. Undo moves it
-// back.
+// back. A note with a sidecar folder takes the folder along, renamed to match,
+// and the move refuses when that name is taken.
 func (m *Markdown) Move(src, dst string) (undo.Action, error) {
 	from, to, err := m.resolvePair(src, dst)
 	if err != nil {
 		return undo.Action{}, err
 	}
+	side, toSide, ok := sidecarPair(from, to)
+	if !ok {
+		return m.moveAt(from, to)
+	}
+	if !isCaseOnlyRename(side, toSide) {
+		if err := mustNotExist(toSide); err != nil {
+			return undo.Action{}, err
+		}
+	}
+	return together("move "+filepath.Base(from),
+		func() (undo.Action, error) { return m.moveAt(from, to) },
+		func() (undo.Action, error) { return m.moveAt(side, toSide) })
+}
+
+// moveAt moves the item at the absolute path from to to.
+func (m *Markdown) moveAt(from, to string) (undo.Action, error) {
 	want, err := m.existing(from)
 	if err != nil {
 		return undo.Action{}, err
@@ -114,13 +131,25 @@ func (m *Markdown) Move(src, dst string) (undo.Action, error) {
 	return r.action("move " + filepath.Base(from)), nil
 }
 
-// Trash moves the item at rel into .para/trash. Undo restores it, and
-// refuses when its original path is taken or the item changed.
+// Trash moves the item at rel into .para/trash, with the sidecar folder of a
+// note. Undo restores it, and refuses when its original path is taken or the
+// item changed.
 func (m *Markdown) Trash(rel string) (undo.Action, error) {
 	from, err := ResolveInRoot(m.root, rel)
 	if err != nil {
 		return undo.Action{}, err
 	}
+	side, ok := existingSidecar(from)
+	if !ok {
+		return m.trashAt(from)
+	}
+	return together("trash "+filepath.Base(from),
+		func() (undo.Action, error) { return m.trashAt(from) },
+		func() (undo.Action, error) { return m.trashAt(side) })
+}
+
+// trashAt moves the item at the absolute path from into the trash.
+func (m *Markdown) trashAt(from string) (undo.Action, error) {
 	want, err := m.existing(from)
 	if err != nil {
 		return undo.Action{}, err
@@ -141,13 +170,37 @@ func (m *Markdown) Trash(rel string) (undo.Action, error) {
 // and other special files inside are skipped. Every note in the copy gets a
 // fresh uid and a title equal to its file name; a note that cannot be
 // rewritten is kept byte for byte and counted in the result. Undo moves the
-// copy to the trash.
+// copy to the trash. A note with a sidecar folder is copied with it, and the
+// copy refuses when the new sidecar name is taken.
 func (m *Markdown) Copy(src, dst string) (undo.Action, CopyResult, error) {
 	var res CopyResult
 	from, to, err := m.resolvePair(src, dst)
 	if err != nil {
 		return undo.Action{}, res, err
 	}
+	side, toSide, ok := sidecarPair(from, to)
+	if !ok {
+		return m.copyAt(from, to)
+	}
+	if err := mustNotExist(toSide); err != nil {
+		return undo.Action{}, res, err
+	}
+	act, err := together("copy "+filepath.Base(from),
+		func() (undo.Action, error) {
+			a, r, err := m.copyAt(from, to)
+			res = r
+			return a, err
+		},
+		func() (undo.Action, error) {
+			a, _, err := m.copyAt(side, toSide)
+			return a, err
+		})
+	return act, res, err
+}
+
+// copyAt copies the item at the absolute path from to to.
+func (m *Markdown) copyAt(from, to string) (undo.Action, CopyResult, error) {
+	var res CopyResult
 	want, err := m.existing(from)
 	if err != nil {
 		return undo.Action{}, res, err
