@@ -66,8 +66,8 @@ func (m *Markdown) list(dir string, opts ListOptions, counts bool) ([]Entry, err
 }
 
 // entry turns a directory entry into a listing row, reporting false for
-// anything that must not be listed: hidden names, .obsidian, non-notes,
-// special files, and symlinks that leave the notebook or cannot be read.
+// anything that must not be listed: hidden names, .obsidian, files that are
+// neither notes nor wanted images, special files, and symlinks that leave the notebook or cannot be read.
 func (m *Markdown) entry(rel string, de fs.DirEntry, opts ListOptions) (Entry, bool) {
 	name := de.Name()
 	if name == obsidianDir || (!opts.ShowHidden && strings.HasPrefix(name, ".")) {
@@ -89,10 +89,11 @@ func (m *Markdown) entry(rel string, de fs.DirEntry, opts ListOptions) (Entry, b
 	}
 
 	isDir := info.IsDir()
-	if !isDir && (!info.Mode().IsRegular() || !isNote(name)) {
+	image := !isDir && opts.IncludeImages && isImage(name)
+	if !isDir && (!info.Mode().IsRegular() || (!isNote(name) && !image)) {
 		return Entry{}, false
 	}
-	return Entry{Name: name, Rel: rel, IsDir: isDir, ModTime: info.ModTime()}, true
+	return Entry{Name: name, Rel: rel, IsDir: isDir, ModTime: info.ModTime(), IsImage: image}, true
 }
 
 // sortEntries orders directories before notes, each case-insensitively by

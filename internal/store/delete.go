@@ -13,7 +13,7 @@ type DirInfo struct {
 	// Items counts every file and folder inside, recursively.
 	Items int
 	// Unlisted counts the items a listing would not show: hidden names,
-	// anything inside a hidden folder, and files that are not .md notes.
+	// anything inside a hidden folder, and files that are neither .md notes nor .png images.
 	Unlisted int
 }
 
@@ -65,7 +65,7 @@ func unlisted(base, p string, d fs.DirEntry) bool {
 			return true
 		}
 	}
-	return !d.IsDir() && !isNote(d.Name())
+	return !d.IsDir() && !isNote(d.Name()) && !isImage(d.Name())
 }
 
 // Delete permanently removes the file or directory tree at rel. It cannot

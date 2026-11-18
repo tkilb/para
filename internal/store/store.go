@@ -37,6 +37,9 @@ type Entry struct {
 	// ItemCount is the number of entries the directory would list under the
 	// same options; it is zero for notes.
 	ItemCount int
+	// IsImage is set for a PNG file, listed only when ListOptions.IncludeImages
+	// is set. It is false for notes and directories.
+	IsImage bool
 }
 
 // ListOptions controls which entries List returns.
@@ -44,13 +47,17 @@ type ListOptions struct {
 	// ShowHidden includes names starting with ".". The .obsidian directory
 	// is never listed.
 	ShowHidden bool
+	// IncludeImages also lists .png files. It is off by default so that code
+	// which expects every listed file to be a note never sees an image.
+	IncludeImages bool
 }
 
 // Store is the notes backend: a notebook of markdown files.
 type Store interface {
 	// List returns the directories and .md notes in dir (relative to the
-	// notebook root): directories first, then notes, each sorted by name. A
-	// missing directory lists as empty.
+	// notebook root), plus .png files when opts.IncludeImages is set:
+	// directories first, then files, each sorted by name. A missing
+	// directory lists as empty.
 	List(dir string, opts ListOptions) ([]Entry, error)
 	// ReadNote reads and parses the note at rel (relative to the root).
 	ReadNote(rel string) (Note, error)

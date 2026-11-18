@@ -51,3 +51,23 @@ func CleanRenamedName(input string, isDir bool) (string, error) {
 	}
 	return name, nil
 }
+
+// CleanRenamedImageName validates a name typed into the rename prompt for a
+// PNG image. The name gets ".png" unless it already ends with it, so renaming
+// never turns an image into a note. It rejects empty names, "." and "..",
+// any "/" and NUL bytes, and a name that is only the extension.
+func CleanRenamedImageName(input string) (string, error) {
+	name := strings.TrimSpace(input)
+	switch {
+	case strings.ContainsRune(name, 0):
+		return "", ErrNulByte
+	case name == "", strings.EqualFold(name, imageExt):
+		return "", ErrEmptyName
+	case name == "." || name == "..", strings.Contains(name, "/"):
+		return "", ErrBadName
+	}
+	if !isImage(name) {
+		name += imageExt
+	}
+	return name, nil
+}

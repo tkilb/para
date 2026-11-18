@@ -114,7 +114,7 @@ func TestInspect(t *testing.T) {
 	got, err := s.Inspect("projects/p")
 	require.NoError(t, err)
 	// a.md, sub, sub/b.md, sub/pic.png, .hidden.md, .obsidian, .obsidian/app.json, notes.txt, empty
-	assert.Equal(t, DirInfo{Items: 9, Unlisted: 5}, got, "pic.png, .hidden.md, .obsidian, its file and notes.txt")
+	assert.Equal(t, DirInfo{Items: 9, Unlisted: 4}, got, ".hidden.md, .obsidian, its file and notes.txt; pic.png is listed")
 
 	got, err = s.Inspect("projects/bare")
 	require.NoError(t, err)
