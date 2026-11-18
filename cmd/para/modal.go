@@ -238,6 +238,14 @@ func (m model) runHistory(done, failed string, run func() (string, error)) model
 	return m.refreshLinks()
 }
 
+// overlayOpen reports whether overlayModals draws anything over the panels: a
+// question, prompt, form, picker, the help or a notification.
+func (m model) overlayOpen() bool {
+	_, notice := m.popups.Current()
+	return m.showingHelp || m.form != nil || m.clipForm != nil || m.picker != nil || m.grep != nil ||
+		m.question != nil || m.pending != nil || (m.input != nil && !m.input.inline) || notice
+}
+
 // overlayModals draws the open question or prompt over view, then the
 // front notification on top of that.
 func (m model) overlayModals(view string) string {

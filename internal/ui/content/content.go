@@ -134,6 +134,10 @@ type Model struct {
 	previewRows []string
 	staleImage  string
 
+	// covered hides a picture while a popup is open: a terminal image draws
+	// over any text, so it would hide the popup.
+	covered bool
+
 	// tabLabels are the tabs drawn in the title, and tabActive the one shown.
 	// They belong to the caller, so they survive a reload.
 	tabLabels []string
@@ -262,6 +266,14 @@ func (m Model) reset() Model {
 	m = m.dropPreview()
 	return Model{width: m.width, height: m.height, places: m.places, plain: m.plain, staleImage: m.staleImage,
 		tabLabels: m.tabLabels, tabActive: m.tabActive}
+}
+
+// Covered returns the panel set to leave its picture out of the next View,
+// and to remove one the terminal still holds. Use it on the copy drawn while a
+// popup is open; the panel's state is not changed.
+func (m Model) Covered() Model {
+	m.covered = true
+	return m
 }
 
 // SetTabs shows labels as tabs in the panel title, with the one at active
@@ -598,6 +610,9 @@ func (m Model) View(outerWidth, outerHeight int, focused bool) string {
 	switch {
 	case m.err != nil:
 		content = errorStyle.Render(ansi.Truncate(m.err.Error(), width, "…"))
+	case m.preview != nil && m.covered:
+		content = m.preview.Cleanup
+		footer.Left = m.preview.Caption
 	case m.preview != nil:
 		content = strings.Join(m.previewRows, "\n")
 		footer.Left = m.preview.Caption

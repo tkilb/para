@@ -710,7 +710,11 @@ func (m model) View() string {
 		case panelRelated:
 			return m.related.View(w, h, m.focus == id)
 		case panelContent:
-			return m.content.View(w, h, m.focus == id)
+			c := m.content
+			if m.overlayOpen() {
+				c = c.Covered()
+			}
+			return c.View(w, h, m.focus == id)
 		case panelInfo:
 			return m.info.View(w, h, m.focus == id)
 		}
