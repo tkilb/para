@@ -632,6 +632,14 @@ func (m model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			break
 		}
 		if _, ok := m.para.SelectedNote(); ok {
+			// Enter goes into the folder of a note's bundled images; right,
+			// and enter on a note with none, move to its Content.
+			if key == "enter" {
+				if p, entered := m.para.EnterBundle(); entered {
+					m.para = p
+					break
+				}
+			}
 			m.focus = panelContent
 		} else {
 			m, cmd = m.paraKey(msg)

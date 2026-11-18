@@ -43,7 +43,7 @@ var helpNavigationBindings = []statusbar.Binding{
 var helpParaBindings = []statusbar.Binding{
 	{Key: "↑/↓", Label: "move"},
 	{Key: "←", Label: "go to the parent directory"},
-	{Key: "→/enter", Label: "open a directory or note"},
+	{Key: "→/enter", Label: "open a directory, or move to a note's Content; enter on a note with bundled images goes into its images folder"},
 	{Key: "gg/G", Label: "first/last entry"},
 	{Key: "ctrl+u/d, pgup/pgdn", Label: "page up/down"},
 	{Key: "[ ]", Label: "previous/next tab"},

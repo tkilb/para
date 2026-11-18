@@ -205,10 +205,14 @@ func (m Model) nearestExisting(i int, t tabState) tabState {
 }
 
 // restoreCursor returns the row index named keep, or cursor clamped to the
-// rows when keep is empty or gone.
+// rows when keep is empty or gone. A note also answers to the name of its
+// hidden sidecar folder, so leaving the folder lands on the note.
 func restoreCursor(rows []row, cursor int, keep string) int {
 	for i, r := range rows {
-		if keep != "" && r.entry.Name == keep {
+		if keep == "" {
+			break
+		}
+		if r.entry.Name == keep || (r.entry.Attachments > 0 && filepath.Base(store.SidecarOf(r.entry.Name)) == keep) {
 			return i
 		}
 	}
@@ -332,6 +336,25 @@ func (m Model) enterDir() Model {
 	t.selected, t.visual, t.search = nil, visualState{}, ""
 	m.tabs[m.active] = t
 	return m.load(m.active)
+}
+
+// EnterBundle goes into the sidecar folder of the note under the cursor, which
+// the listing hides, so its images show as rows. It reports false, changing
+// nothing, when the cursor is not on a note with bundled images.
+func (m Model) EnterBundle() (Model, bool) {
+	t := m.tabs[m.active]
+	if t.cursor >= len(t.rows) {
+		return m, false
+	}
+	e := t.rows[t.cursor].entry
+	if e.IsDir || e.IsImage || e.Attachments == 0 {
+		return m, false
+	}
+	t.dir = filepath.Join(t.dir, filepath.Base(store.SidecarOf(e.Rel)))
+	t.cursor, t.keep = 0, ""
+	t.selected, t.visual, t.search = nil, visualState{}, ""
+	m.tabs[m.active] = t
+	return m.load(m.active), true
 }
 
 // goUp moves to the parent directory with the cursor on the directory just
