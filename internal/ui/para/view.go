@@ -92,22 +92,23 @@ func (m Model) View(outerWidth, outerHeight int, focused bool) string {
 	footer := panel.Footer{Left: left, Right: status(t, m.clip)}
 	content := m.body(t, width, max(height-m.headerRows(), 1), focused)
 	if m.headerRows() > 0 {
-		content = breadcrumb(t.dir, width) + "\n" + content
+		content = breadcrumb(t.dir, width) + "\n" + dimStyle.Render(strings.Repeat("─", width)) + "\n" + content
 	}
 	return panel.FrameTabs(panelNumber, tabs, content, width, height, focused, footer)
 }
 
-// headerRows is how many rows above the list hold the path: one inside a
-// folder, none at the tab root, where the tab name already says where you are.
+// headerRows is how many rows above the list hold the path and the divider
+// under it: two inside a folder, none at the tab root, where the tab name
+// already says where you are.
 func (m Model) headerRows() int {
 	if m.tabs[m.active].dir == "" {
 		return 0
 	}
-	return 1
+	return 2
 }
 
 // listRows is how many list rows fit: the height inside the border less the
-// path row, if there is one.
+// path and divider rows, if there are any.
 func (m Model) listRows() int { return max(m.innerRows-m.headerRows(), 1) }
 
 // The path is drawn in blue (the color the selected tab once had): the folder

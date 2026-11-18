@@ -94,7 +94,7 @@ para never edits files other than your notes, so it does not add that line for y
 | Key | Panel | What it shows |
 | --- | --- | --- |
 | `1` | *(empty)* | A one-line placeholder pane titled `[1]`. |
-| `2` | **PARA** | Five tabs (Inbox, Projects, Areas, Resources, Archives), each a folder browser. Only the selected tab is spelled out. Inside a folder, the first row is its path. |
+| `2` | **PARA** | Five tabs (Inbox, Projects, Areas, Resources, Archives), each a folder browser. Only the selected tab is spelled out. Inside a folder, the first row is its path, with a dividing line under it. |
 | `3` | **Related** | What the selected note references and what references it, from its `related` property. |
 | `0` | **Content** | The selected note's text, with a cursor line. |
 | `4` | **Info** | The note's kind, source, date, tags, people and any other properties. |
