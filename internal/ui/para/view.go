@@ -185,8 +185,9 @@ func (m Model) body(t tabState, width, height int, focused bool) string {
 	return strings.Join(lines, "\n")
 }
 
-// bundleMark is shown on the row of a note that has bundled images. The
-// number of images is in the Content tabs, not on the row. It is one column wide in every terminal and common font.
+// bundleMark is shown on the row of a note that has bundled images, in the
+// color of the IMG badge. The number of images is in the Content tabs, not on
+// the row. It is one column wide in every terminal and common font.
 const bundleMark = "❖"
 
 // renderRow draws one row: a marker column (the bar, or the bullet of a
@@ -227,9 +228,14 @@ func renderRow(r row, width int, cursor bool, mk mark, marked bool, query string
 
 	countStyle := dimStyle
 	countSel := selStyle
-	if r.entry.IsDir && r.entry.ItemCount == 0 {
+	switch {
+	case r.entry.IsDir && r.entry.ItemCount == 0:
 		countStyle = lipgloss.NewStyle().Foreground(overdueColor)
 		countSel = selStyle.Foreground(overdueColor)
+	case right == bundleMark:
+		_, imageColor := kindstyle.ImageStyle() // the color of the IMG badge
+		countStyle = lipgloss.NewStyle().Foreground(imageColor)
+		countSel = selStyle.Foreground(imageColor)
 	}
 
 	nameWidth := max(width-badgeWidth-1-ansi.StringWidth(right)-1, 1)
