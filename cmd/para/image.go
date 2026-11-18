@@ -70,12 +70,19 @@ func (m model) syncTabs() model {
 // wrapping around as the PARA tabs do. Tab 0 is the note and the others are its
 // bundled images.
 func (m model) stepBundleTab(delta int) model {
+	n := len(m.bundle) + 1
+	return m.openBundleTab((m.bundleTab + delta + n) % n)
+}
+
+// openBundleTab opens Content tab number tab: 0 is the note, i the image
+// bundle[i-1]. It does nothing when the note has no bundle or tab is out of
+// range.
+func (m model) openBundleTab(tab int) model {
 	entry, ok := m.para.SelectedNote()
-	if !ok || len(m.bundle) == 0 {
+	if !ok || len(m.bundle) == 0 || tab < 0 || tab > len(m.bundle) {
 		return m
 	}
-	n := len(m.bundle) + 1
-	m.bundleTab = (m.bundleTab + delta + n) % n
+	m.bundleTab = tab
 	if m.bundleTab == 0 {
 		note, err := m.store.ReadNote(entry.Rel)
 		if err != nil {

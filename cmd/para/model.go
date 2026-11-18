@@ -608,10 +608,14 @@ func (m model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		switch m.focus {
 		case panelContent:
 			// Closing a range or clearing the selection comes before leaving
-			// the panel.
-			if m.content.Active() {
+			// the panel. On an image tab, left goes back one tab first, so it
+			// leaves only from the note tab; esc always leaves.
+			switch {
+			case m.content.Active():
 				m.content = m.content.Escape()
-			} else {
+			case key == "left" && m.bundleTab > 0:
+				m = m.openBundleTab(m.bundleTab - 1)
+			default:
 				m.focus = panelPARA
 			}
 		case panelInfo, panelRelated, panelBlank:
@@ -626,6 +630,11 @@ func (m model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		if m.focus == panelContent && m.content.HasSelection() && key == "enter" {
 			m, cmd = m.startExtract()
+			break
+		}
+		if m.focus == panelContent && key == "right" && len(m.bundle) > 0 {
+			// Right opens the next tab and stops at the last: it never wraps.
+			m = m.openBundleTab(m.bundleTab + 1)
 			break
 		}
 		if m.focus != panelPARA {
@@ -690,7 +699,7 @@ func (m model) bindings() []statusbar.Binding {
 	case panelContent:
 		local = contentBindings
 		if len(m.bundle) > 0 {
-			local = append([]statusbar.Binding{{Key: "[ ]", Label: "image tabs"}}, local...)
+			local = append([]statusbar.Binding{{Key: "←/→ [ ]", Label: "image tabs"}}, local...)
 		}
 	case panelInfo:
 		local = infoBindings
