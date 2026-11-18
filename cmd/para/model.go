@@ -257,9 +257,10 @@ type model struct {
 // count means a folder listed differently (for example after toggling
 // hidden files).
 type shownNote struct {
-	rel   string
-	mod   time.Time
-	items int
+	rel         string
+	mod         time.Time
+	items       int
+	attachments int
 }
 
 func initialModel(s store.Store) model {
@@ -282,7 +283,7 @@ func (m model) syncSelection() model {
 		m.title = m.title.Set("")
 		return m
 	}
-	now := shownNote{rel: entry.Rel, mod: entry.ModTime, items: entry.ItemCount}
+	now := shownNote{rel: entry.Rel, mod: entry.ModTime, items: entry.ItemCount, attachments: entry.Attachments}
 	if now == m.shown {
 		return m
 	}
@@ -310,7 +311,7 @@ func (m model) syncSelection() model {
 	m.title = m.title.SetNote(note.Kind, note.Title)
 	m.shownFront = frontLines(note)
 	m.content = m.content.LoadNote(entry.Rel, m.wantFront(), note.Body)
-	m.info = m.info.ShowNote(entry.Rel, note)
+	m.info = m.info.ShowNote(entry.Rel, note, m.bundledImages(entry))
 	return m
 }
 
@@ -539,8 +540,6 @@ func (m model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m, cmd = m.startQuickAdd()
 	case "I":
 		m, cmd = m.importKey()
-	case "C":
-		m = m.pasteImage()
 	case "B":
 		m, cmd = m.openNotebookPicker()
 	case "M":

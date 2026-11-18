@@ -39,6 +39,13 @@ const (
 	OpTrash
 	// OpDelete permanently deletes the targets.
 	OpDelete
+	// OpBundlePaste puts the yanked or cut image into the sidecar folder of
+	// the note under the cursor.
+	OpBundlePaste
+	// OpPasteBeside pastes the image next to the note instead of bundling it.
+	OpPasteBeside
+	// OpPasteBesideOverwrite is OpPasteBeside for P, which overwrites.
+	OpPasteBesideOverwrite
 )
 
 // Confirm is a yes/no question. The root model shows Prompt and, on yes,
@@ -48,6 +55,10 @@ type Confirm struct {
 	Op     ConfirmOp
 	// Danger draws the question in red, for actions that remove items.
 	Danger bool
+	// Alt, when set, is what n does instead of declining, and Hint words the
+	// keys. esc still declines. They make a choice of two actions.
+	Alt  ConfirmOp
+	Hint string
 }
 
 // InputOp names what happens with the text a Prompt collects.

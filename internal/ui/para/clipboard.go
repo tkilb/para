@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/tkilb/para/internal/attach"
 	"github.com/tkilb/para/internal/store"
 	"github.com/tkilb/para/internal/undo"
 )
@@ -170,6 +171,58 @@ func (m Model) paste(overwrite, confirmed bool) (Model, Effect) {
 	if m.clip.mode == clipNone {
 		return m, Effect{Info: "Nothing to paste."}
 	}
+	if eff, ok := m.askBundle(overwrite); ok {
+		return m, eff
+	}
+	return m.pasteHere(overwrite, confirmed)
+}
+
+// bundleTarget is the note under the cursor when the buffer holds exactly one
+// image, so the image could be bundled with the note.
+func (m Model) bundleTarget() (store.Entry, bool) {
+	if len(m.clip.rels) != 1 || !store.IsImage(filepath.Base(m.clip.rels[0])) {
+		return store.Entry{}, false
+	}
+	return m.SelectedNote()
+}
+
+// askBundle asks whether to bundle the image in the buffer with the note under
+// the cursor or paste it beside, when that is the situation.
+func (m Model) askBundle(overwrite bool) (Effect, bool) {
+	note, ok := m.bundleTarget()
+	if !ok {
+		return Effect{}, false
+	}
+	beside := OpPasteBeside
+	if overwrite {
+		beside = OpPasteBesideOverwrite
+	}
+	return Effect{Confirm: &Confirm{
+		Prompt: fmt.Sprintf("Bundle %s with %s, or paste it beside the note?", filepath.Base(m.clip.rels[0]), rowName(note)),
+		Op:     OpBundlePaste,
+		Alt:    beside,
+		Hint:   "(y/enter) bundle  (n) paste beside  (esc) cancel",
+	}}, true
+}
+
+// bundlePaste puts the image in the buffer into the sidecar folder of the
+// note under the cursor, as one undo entry.
+func (m Model) bundlePaste() (Model, Effect) {
+	note, ok := m.bundleTarget()
+	if !ok {
+		return m, Effect{Err: errors.New("bundle: select the note to bundle with")}
+	}
+	res, err := attach.Bundle(m.store, note.Rel, m.clip.rels[0], m.clip.mode == clipCut)
+	if err != nil {
+		return m, Effect{Err: fmt.Errorf("bundle failed: %w", err)}
+	}
+	m.clip = clip{}
+	m = m.Reload()
+	return m, Effect{Action: &res.Action}
+}
+
+// pasteHere pastes the buffer into the current directory.
+func (m Model) pasteHere(overwrite, confirmed bool) (Model, Effect) {
 	plan, err := m.planPaste()
 	if err != nil {
 		return m, Effect{Err: fmt.Errorf("paste: %w", err)}
@@ -265,6 +318,12 @@ func (m Model) ApplyConfirm(op ConfirmOp) (Model, Effect) {
 		return m.trash()
 	case OpDelete:
 		return m.deletePermanently()
+	case OpBundlePaste:
+		return m.bundlePaste()
+	case OpPasteBeside:
+		return m.pasteHere(false, false)
+	case OpPasteBesideOverwrite:
+		return m.pasteHere(true, false)
 	}
 	return m, Effect{}
 }

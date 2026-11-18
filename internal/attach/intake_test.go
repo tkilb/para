@@ -179,3 +179,33 @@ func TestPNGFixturesDecode(t *testing.T) {
 	_, err := png.Decode(bytes.NewReader(tinyPNG(t)))
 	require.NoError(t, err)
 }
+
+func TestImportAClipboardJPEGIsStoredAsPNG(t *testing.T) {
+	root, inbox := intakeRoot(t)
+	res, handled, err := Import(context.Background(), newStoreAt(root), fakeSource{data: tinyJPEG(t)}, "projects/alpha", "", inbox, when)
+	require.NoError(t, err)
+	assert.True(t, handled)
+	got, err := os.ReadFile(filepath.Join(root, res.Rel))
+	require.NoError(t, err)
+	_, format, err := image.Decode(bytes.NewReader(got))
+	require.NoError(t, err)
+	assert.Equal(t, "png", format)
+}
+
+func TestImportUndoAndRedo(t *testing.T) {
+	root, inbox := intakeRoot(t)
+	res, _, err := Import(context.Background(), newStoreAt(root), fakeSource{data: tinyPNG(t)}, "projects/alpha", "", inbox, when)
+	require.NoError(t, err)
+	path := filepath.Join(root, res.Rel)
+	require.NoError(t, res.Action.Undo())
+	assert.NoFileExists(t, path)
+	require.NoError(t, res.Action.Redo())
+	assert.FileExists(t, path)
+}
+
+func TestImportRefusesAFolderOutsideTheNotebook(t *testing.T) {
+	root, inbox := intakeRoot(t)
+	_, handled, err := Import(context.Background(), newStoreAt(root), fakeSource{data: tinyPNG(t)}, "../elsewhere", "", inbox, when)
+	require.Error(t, err)
+	assert.True(t, handled)
+}

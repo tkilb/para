@@ -37,7 +37,7 @@ type Entry struct {
 	// ItemCount is the number of entries the directory would list under the
 	// same options; it is zero for notes.
 	ItemCount int
-	// Attachments is the number of files in a note's sidecar folder, zero
+	// Attachments is the number of images in a note's sidecar folder, zero
 	// when it has none and for anything but a note.
 	Attachments int
 	// IsImage is set for a PNG file, listed only when ListOptions.IncludeImages

@@ -162,7 +162,7 @@ func TestListHidesASidecarAndCountsItsImages(t *testing.T) {
 	for _, e := range got {
 		byName[e.Name] = e
 	}
-	assert.Equal(t, 3, byName["plan.md"].Attachments, "every visible file in the sidecar counts")
+	assert.Equal(t, 2, byName["plan.md"].Attachments, "only the visible images in the sidecar count")
 	assert.Equal(t, 0, byName["solo.md"].Attachments)
 }
 

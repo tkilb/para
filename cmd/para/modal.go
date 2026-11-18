@@ -207,7 +207,16 @@ func (m model) answer(key string) (tea.Model, tea.Cmd) {
 		var eff para.Effect
 		m.para, eff = m.para.ApplyConfirm(op)
 		return m.apply(eff)
-	case "n", "esc":
+	case "n":
+		alt := m.pending.Alt
+		m.pending = nil
+		if alt == 0 {
+			return m, nil
+		}
+		var eff para.Effect
+		m.para, eff = m.para.ApplyConfirm(alt)
+		return m.apply(eff)
+	case "esc":
 		m.pending = nil
 	}
 	return m, nil
@@ -257,6 +266,8 @@ func (m model) overlayModals(view string) string {
 		}
 		box := popup.InputBox(m.input.title, m.input.label, field, m.width)
 		view = popup.Overlay(view, box, m.width, m.height)
+	case m.pending != nil && m.pending.Hint != "":
+		view = popup.Overlay(view, popup.ChoiceBox(m.pending.Prompt, m.pending.Hint, m.width), m.width, m.height)
 	case m.pending != nil && m.pending.Danger:
 		view = popup.Overlay(view, popup.DangerConfirmBox(m.pending.Prompt, m.width), m.width, m.height)
 	case m.pending != nil:

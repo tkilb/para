@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/tkilb/para/internal/imgfmt"
 	"github.com/tkilb/para/internal/intake"
 	"github.com/tkilb/para/internal/store"
 	"github.com/tkilb/para/internal/undo"
@@ -24,29 +23,12 @@ type Source interface {
 	Image(ctx context.Context) ([]byte, error)
 }
 
-// Result describes a pasted image.
+// Result describes a saved image.
 type Result struct {
 	// Rel is the new file, relative to the notebook root.
 	Rel string
-	// Action undoes (and redoes) the paste.
+	// Action undoes (and redoes) the save.
 	Action undo.Action
-}
-
-// Paste reads the clipboard image, converts it to PNG and saves it in dir
-// (relative to the notebook root) as "YYYY-MM-DD HH-MM-SS.png", with a number
-// added when that name is taken. Nothing is written when any step fails.
-func Paste(ctx context.Context, s store.Store, src Source, dir string, now time.Time) (Result, error) {
-	ctx, cancel := context.WithTimeout(ctx, pasteTimeout)
-	defer cancel()
-	raw, err := src.Image(ctx)
-	if err != nil {
-		return Result{}, err
-	}
-	data, err := imgfmt.ToPNG(raw)
-	if err != nil {
-		return Result{}, err
-	}
-	return save(s, dir, now.Format(nameLayout), data)
 }
 
 // save writes the PNG in data to dir as "stem.png", with a number added to the

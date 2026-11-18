@@ -94,7 +94,7 @@ func sidecarsIn(des []fs.DirEntry) map[string]string {
 	return out
 }
 
-// countFiles counts the visible files directly inside dir.
+// countFiles counts the visible PNG images directly inside dir.
 func countFiles(dir string) int {
 	des, err := os.ReadDir(dir)
 	if err != nil {
@@ -102,7 +102,7 @@ func countFiles(dir string) int {
 	}
 	n := 0
 	for _, de := range des {
-		if !strings.HasPrefix(de.Name(), ".") && de.Type().IsRegular() {
+		if !strings.HasPrefix(de.Name(), ".") && de.Type().IsRegular() && isImage(de.Name()) {
 			n++
 		}
 	}

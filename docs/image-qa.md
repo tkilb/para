@@ -1,4 +1,4 @@
-# Manual QA: image attachments (`C` and the preview)
+# Manual QA: image attachments (`I`, bundling and the preview)
 
 The interface has no automated tests, so run these by hand after changing
 image support. Use a scratch notebook, not a real one. The engine under it
@@ -27,22 +27,51 @@ clipboard or terminal.
 | 7 | Press `e`, `K`, `mm`, `o` on an image | `e`, `mm` and `o` do nothing; `K` says an image has no kind. |
 | 8 | Put a text file named `bad.png` in `inbox/` and select it | Content shows an error ("cannot read the image"), with no path in it. |
 
-## Pasting (`C`)
+## Importing images (`I`)
+
+The agent import can stay off (`digest.enabled` unset) for every step here.
 
 | # | Step | Expect |
 | --- | --- | --- |
-| 9 | Copy text, then press `C` | A notice: the clipboard has no image. Nothing is written. |
-| 10 | Take a screenshot to the clipboard (macOS: `cmd+ctrl+shift+4`), press `C` | `YYYY-MM-DD HH-MM-SS.png` appears in the folder PARA shows, the cursor is on it, and the preview shows the screenshot. |
-| 11 | Press `C` again within the same second | A second file with ` 2` before `.png`; the first is untouched. |
+| 9 | Copy text, press `I` | The box opens. Its hint is not an image ("text import is off" when the agent import is off). Enter shows the "Import is off" notice and nothing is written. |
+| 10 | Take a screenshot to the clipboard (macOS: `cmd+ctrl+shift+4`), press `I` | The hint says `image from the clipboard, W x H px, saved as a PNG`. Enter saves `YYYY-MM-DD HH-MM-SS.png` in the folder PARA shows, the cursor is on it and the preview shows the screenshot. |
+| 11 | Repeat step 10 within the same second | A second file with ` 2` before `.png`; the first is untouched. |
 | 12 | Press `u`, then `ctrl+r` | The file goes away, then comes back. |
-| 13 | Copy a JPEG or WebP image from a browser, press `C` | The saved file is a PNG (`file name.png` says PNG image data). |
-| 14 | On Linux without `wl-paste` or `xclip`, press `C` | A notice names `wl-clipboard` and `xclip`. |
+| 13 | Copy a JPEG or WebP image from a browser, press `I`, Enter | The saved file is a PNG (`file name.png` says PNG image data). |
+| 14 | Press `I`, type the path to a `.jpg`, `.webp` or `.avif` file, Enter | The hint says `image file, W x H px, saved as a PNG`. A PNG with the file's name is saved; the original is not changed. A bare name such as `diagram` finds `diagram.png` in `inbox/`. |
+| 15 | Type the path to a text file | The hint is the usual text hint (or "not an image" with the agent import off), and nothing image-related happens. |
+| 16 | On Linux without `wl-paste` or `xclip`, copy an image and press `I` | The hint is the text hint: the clipboard image cannot be read. An image file path still works. |
+
+## Bundling with a note
+
+| # | Step | Expect |
+| --- | --- | --- |
+| 17 | `y` on an image, move onto `note.md`, `p` | A question: bundle the image with the note, or paste it beside. `esc` cancels and the buffer is kept. |
+| 18 | Answer `y` | `note.assets/` appears on disk with the image; the original stays (a yank copies). PARA shows no `.assets` row; `note` shows `+1`. Info lists the image (scroll Info if needed). |
+| 19 | `u`, then `ctrl+r` | The image leaves the folder and the folder goes with it; then both return. |
+| 20 | Repeat with `x` instead of `y` | The image is moved into the folder (a cut moves it). `u` puts it back. |
+| 21 | Yank an image, move onto a note, `p`, answer `n` | The image is pasted beside the note, as a plain paste. |
+| 22 | Same with `P` and `n` | Like `p`, but an existing file of that name is replaced after asking. |
+| 23 | Yank two images, or an image and a note, move onto a note, `p` | No question: a plain paste. |
+| 24 | Yank an image, put the cursor on a folder or another image, `p` | No question: a plain paste. |
+| 25 | Bundle the same image twice into one note | The second is `name 2.png`; nothing is replaced. |
+
+## The bundle stays with the note
+
+| # | Step | Expect |
+| --- | --- | --- |
+| 26 | `r` on a bundled note, type a new name | `.assets` is renamed to match; `+N` stays; `u` restores both. |
+| 27 | `y` on the note, move to another folder, `p` | The note and its `.assets` copy arrive together, with the images as separate files. |
+| 28 | `x` the note, `p` in another folder | Both move; the old folder is gone. |
+| 29 | `d` on the note, then `u` | Both go to the trash and both return. `D` deletes both permanently, after asking. |
+| 30 | Make the target `.assets` folder exist first (create `other.assets/` by hand) and move or copy a bundled note to the name `other.md` | The operation fails with "already exists" and nothing is moved or copied. |
+| 31 | Create a folder `lonely.assets/` with no `lonely.md` beside it | It is listed as an ordinary folder. |
 
 ## Other actions
 
 | # | Step | Expect |
 | --- | --- | --- |
-| 15 | `r` on an image, type `diagram` | It becomes `diagram.png`; `u` restores the name. Typing `diagram.png` gives the same. |
-| 16 | `y`, move to another folder, `p` | A copy is made; pasting twice in one folder gives `name_1.png`, `name_2.png`. |
-| 17 | `d` on an image, then `u` | It goes to the trash, then returns. |
-| 18 | `ctrl+f` and `ctrl+/` | Images are not offered as notes and are not searched. |
+| 32 | `r` on an image, type `diagram` | It becomes `diagram.png`; `u` restores the name. Typing `diagram.png` gives the same. |
+| 33 | `y`, move to another folder, `p` | A copy is made; pasting twice in one folder gives `name_1.png`, `name_2.png`. |
+| 34 | `d` on an image, then `u` | It goes to the trash, then returns. |
+| 35 | `ctrl+f` and `ctrl+/` | Images are not offered as notes and are not searched. |

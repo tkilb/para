@@ -15,6 +15,7 @@ import (
 	"go.yaml.in/yaml/v3"
 
 	"github.com/tkilb/para/internal/store"
+	"github.com/tkilb/para/internal/textsafe"
 	"github.com/tkilb/para/internal/ui/kindstyle"
 	"github.com/tkilb/para/internal/ui/panel"
 )
@@ -85,9 +86,10 @@ func (m Model) Clear() Model {
 	return Model{width: m.width, height: m.height}
 }
 
-// ShowNote shows the note read from rel. The scroll is kept when rel is
-// already shown and reset otherwise.
-func (m Model) ShowNote(rel string, n store.Note) Model {
+// ShowNote shows the note read from rel, and under its properties the names
+// of the images bundled with it. The scroll is kept when rel is already shown
+// and reset otherwise.
+func (m Model) ShowNote(rel string, n store.Note, images []string) Model {
 	std := newStandard(n.Kind, kindstyle.Color(n.Kind), n.Frontmatter)
 	var rows []row
 	if n.FrontmatterErr != nil {
@@ -105,6 +107,13 @@ func (m Model) ShowNote(rel string, n store.Note) Model {
 			}
 			rows = append(rows, row{label: p.Key, value: valueLines(p.Value, 0, &budget), style: plain})
 		}
+	}
+	if len(images) > 0 {
+		lines := make([]string, len(images))
+		for i, name := range images {
+			lines[i] = textsafe.SingleLine(name)
+		}
+		rows = append(rows, row{label: "Images", value: lines, style: plain})
 	}
 	return m.showStd(rel, &std, rows)
 }

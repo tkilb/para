@@ -9,6 +9,7 @@ import (
 	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/tkilb/para/internal/attach"
 	"github.com/tkilb/para/internal/config"
 	"github.com/tkilb/para/internal/digest"
 	"github.com/tkilb/para/internal/loader"
@@ -36,18 +37,24 @@ type statusClearMsg struct{ id int }
 
 // importKey handles I. On an IMPORT_ folder, or anything inside one, it runs
 // that import again at once; anywhere else it asks what to import.
+//
+// With the agent import off, I still saves an image, which never goes to the
+// agent; only text, web pages and re-runs need digest.enabled.
 func (m model) importKey() (model, tea.Cmd) {
-	if !m.digest.Enabled {
-		return m.notify(popup.Info, "Import is off. Set digest: enabled: true in the config file to turn it on. Imported content is then sent to the agent command."), nil
-	}
 	if m.importing > 0 {
 		return m.notify(popup.Info, "An import is already running."), nil
 	}
 	if folder, ok := m.cursorImportFolder(); ok {
+		if !m.digest.Enabled {
+			return m.notify(popup.Info, importOffNotice), nil
+		}
 		return m.startRerun(folder)
 	}
 	return m.openImportPrompt()
 }
+
+// importOffNotice says why a text import did not run.
+const importOffNotice = "Import is off. Set digest: enabled: true in the config file to turn it on. Imported content is then sent to the agent command."
 
 // cursorImportFolder is the import folder under the PARA cursor, or the one
 // PARA is showing.
@@ -64,11 +71,25 @@ func (m model) cursorImportFolder() (string, bool) {
 // address or a file path, with a preview line and Tab completion.
 func (m model) openImportPrompt() (model, tea.Cmd) {
 	inbox, _ := m.store.Path("inbox")
-	in, cmd := m.openInput(&para.Prompt{
-		Title: "Import",
-		Label: "Blank: clipboard · URL: web page · else: file (Tab completes)",
-	})
-	in.hint = func(text string) string { return loader.Describe(text, inbox, clipboard.ReadAll) }
+	enabled := m.digest.Enabled
+	label := "Blank: clipboard · URL: web page · else: file, or an image (Tab completes)"
+	if !enabled {
+		label = "Blank: clipboard image · else: an image file (text import is off) (Tab completes)"
+	}
+	in, cmd := m.openInput(&para.Prompt{Title: "Import", Label: label})
+	clipImage, hasClipImage := attach.ProbeClipboard(context.Background(), m.imageClip)
+	in.hint = func(text string) string {
+		if hasClipImage && loader.Classify(text).Kind == loader.Clipboard {
+			return clipImage
+		}
+		if hint, ok := attach.ProbeFile(text, inbox); ok {
+			return hint
+		}
+		if !enabled {
+			return "not an image: text import is off (digest.enabled)"
+		}
+		return loader.Describe(text, inbox, clipboard.ReadAll)
+	}
 	in.complete = func(text string) (string, []string) { return loader.Complete(text, inbox) }
 	in.accept = func(m model, text string) (model, tea.Cmd) { return m.startImport(text, inbox) }
 	in.refresh()
@@ -77,8 +98,16 @@ func (m model) openImportPrompt() (model, tea.Cmd) {
 }
 
 // startImport begins an import of what was typed: the source is read and
-// the agent run in the background.
+// the agent run in the background. An image, from the clipboard or a file, is
+// instead saved at once as a PNG in the folder PARA shows.
 func (m model) startImport(text, inbox string) (model, tea.Cmd) {
+	// An image is saved as it is, without the agent.
+	if res, handled, err := attach.Import(context.Background(), m.store, m.imageClip, m.para.Dir(), text, inbox, time.Now()); handled {
+		return m.finishImage(res, err), nil
+	}
+	if !m.digest.Enabled {
+		return m.notify(popup.Info, importOffNotice), nil
+	}
 	in := loader.Classify(text)
 	fetcher := m.fetcher
 	load := func(ctx context.Context) (loader.Source, error) {

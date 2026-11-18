@@ -119,6 +119,12 @@ func ConfirmBox(text string, screenWidth int) string {
 	return renderBox("Confirm", confirmColor, confirmHint, text, screenWidth)
 }
 
+// ChoiceBox draws a question with its own key hint, for a choice that is more
+// than yes or no.
+func ChoiceBox(text, hint string, screenWidth int) string {
+	return renderBox("Confirm", confirmColor, hint, text, screenWidth)
+}
+
 // DangerConfirmBox draws a yes/no box in red, for actions that cannot be
 // undone, so the elevated risk is obvious.
 func DangerConfirmBox(text string, screenWidth int) string {

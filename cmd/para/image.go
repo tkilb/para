@@ -1,10 +1,6 @@
 package main
 
 import (
-	"context"
-	"errors"
-	"time"
-
 	"github.com/tkilb/para/internal/attach"
 	"github.com/tkilb/para/internal/imgpreview"
 	"github.com/tkilb/para/internal/store"
@@ -12,15 +8,12 @@ import (
 	"github.com/tkilb/para/internal/ui/popup"
 )
 
-// pasteImage saves the image on the clipboard as a PNG in the folder PARA
-// shows, as one undo entry, and puts the cursor on it.
-func (m model) pasteImage() model {
-	res, err := attach.Paste(context.Background(), m.store, m.imageClip, m.para.Dir(), time.Now())
-	switch {
-	case errors.Is(err, attach.ErrNoImage):
-		return m.notify(popup.Info, "The clipboard has no image.")
-	case err != nil:
-		return m.notify(popup.Warning, "Could not paste the image: "+err.Error()+".")
+// finishImage records the undo entry for an image just saved, refreshes the
+// panels and puts the cursor on the new file. A failure is reported and
+// nothing was written.
+func (m model) finishImage(res attach.Result, err error) model {
+	if err != nil {
+		return m.notify(popup.Warning, "Could not save the image: "+err.Error()+".")
 	}
 	m.history.Push(res.Action)
 	m.para = m.para.Reload()
@@ -28,6 +21,25 @@ func (m model) pasteImage() model {
 		m.para = p
 	}
 	return m
+}
+
+// bundledImages lists the file names of the images in the note's sidecar
+// folder, or nil when it has none.
+func (m model) bundledImages(entry store.Entry) []string {
+	if entry.Attachments == 0 {
+		return nil
+	}
+	entries, err := m.store.List(store.SidecarOf(entry.Rel), store.ListOptions{IncludeImages: true})
+	if err != nil {
+		return nil
+	}
+	names := make([]string, 0, len(entries))
+	for _, e := range entries {
+		if e.IsImage {
+			names = append(names, e.Name)
+		}
+	}
+	return names
 }
 
 // showImage fills Content with a scaled preview of the image entry, and

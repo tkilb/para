@@ -216,6 +216,9 @@ func renderRow(r row, width int, cursor bool, mk mark, marked bool, query string
 		badge, badgeColor = kindstyle.ImageStyle()
 	default:
 		badge, badgeColor = kindstyle.Badge(r.kind)
+		if n := r.entry.Attachments; n > 0 {
+			right = fmt.Sprintf("+%d", n)
+		}
 	}
 
 	countStyle := dimStyle
