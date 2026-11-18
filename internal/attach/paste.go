@@ -1,0 +1,78 @@
+package attach
+
+import (
+	"context"
+	"fmt"
+	"path/filepath"
+	"time"
+
+	"github.com/tkilb/para/internal/imgfmt"
+	"github.com/tkilb/para/internal/intake"
+	"github.com/tkilb/para/internal/store"
+	"github.com/tkilb/para/internal/undo"
+)
+
+const (
+	nameLayout   = "2006-01-02 15-04-05"
+	pngExt       = ".png"
+	pasteTimeout = 15 * time.Second
+	maxNameTries = 1000
+)
+
+// Source supplies the image on the clipboard.
+type Source interface {
+	Image(ctx context.Context) ([]byte, error)
+}
+
+// Result describes a pasted image.
+type Result struct {
+	// Rel is the new file, relative to the notebook root.
+	Rel string
+	// Action undoes (and redoes) the paste.
+	Action undo.Action
+}
+
+// Paste reads the clipboard image, converts it to PNG and saves it in dir
+// (relative to the notebook root) as "YYYY-MM-DD HH-MM-SS.png", with a number
+// added when that name is taken. Nothing is written when any step fails.
+func Paste(ctx context.Context, s store.Store, src Source, dir string, now time.Time) (Result, error) {
+	ctx, cancel := context.WithTimeout(ctx, pasteTimeout)
+	defer cancel()
+	raw, err := src.Image(ctx)
+	if err != nil {
+		return Result{}, err
+	}
+	data, err := imgfmt.ToPNG(raw)
+	if err != nil {
+		return Result{}, err
+	}
+	rel, err := freeName(s, dir, now)
+	if err != nil {
+		return Result{}, err
+	}
+	act, err := s.Create(rel, data)
+	if err != nil {
+		return Result{}, err
+	}
+	return Result{Rel: rel, Action: act}, nil
+}
+
+// freeName returns the first unused dated name in dir.
+func freeName(s store.Store, dir string, now time.Time) (string, error) {
+	base := now.Format(nameLayout)
+	for n := 1; n <= maxNameTries; n++ {
+		name := base
+		if n > 1 {
+			name = fmt.Sprintf("%s %d", base, n)
+		}
+		rel := filepath.ToSlash(filepath.Join(dir, name+pngExt))
+		taken, err := s.Exists(rel)
+		if err != nil {
+			return "", err
+		}
+		if !taken {
+			return rel, nil
+		}
+	}
+	return "", intake.ErrNoFreeName
+}
