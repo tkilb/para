@@ -376,9 +376,24 @@ func (m model) grid() grid {
 	return g
 }
 
+// stepFocus moves the focus with step, skipping panels the compact layout
+// hides.
+func (m model) stepFocus(step func(panelID) panelID) panelID {
+	g := m.grid()
+	p := step(m.focus)
+	for i := 0; i < len(focusCycle) && !g.shows(p); i++ {
+		p = step(p)
+	}
+	return p
+}
+
 // resizePanels gives PARA, Content and Info the size the grid leaves them.
+// A focus the compact layout hides moves to PARA.
 func (m model) resizePanels() model {
 	g := m.grid()
+	if !g.shows(m.focus) {
+		m.focus = panelPARA
+	}
 	_, rows := panel.InnerSize(g.leftWidth, g.paraHeight)
 	m.para = m.para.Resize(rows)
 	bw, bh := panel.InnerSize(g.rightWidth, g.contentHeight)
@@ -555,11 +570,13 @@ func (m model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "+":
 		m.zoomed = !m.zoomed
 	case "tab":
-		m.focus = m.focus.next()
+		m.focus = m.stepFocus(panelID.next)
 	case "shift+tab":
-		m.focus = m.focus.prev()
+		m.focus = m.stepFocus(panelID.prev)
 	case "0", "1", "2", "3", "4":
-		m.focus = panelID(key[0] - '0')
+		if p := panelID(key[0] - '0'); m.grid().shows(p) {
+			m.focus = p
+		}
 	case "esc", "left":
 		switch m.focus {
 		case panelContent:
@@ -662,6 +679,15 @@ func (m model) View() string {
 	if m.zoomed {
 		zoomed := render(m.focus, g.leftWidth, m.height-1)
 		view := lipgloss.JoinVertical(lipgloss.Left, zoomed, ansi.Truncate(m.statusLine(), m.width, "…"))
+		return m.overlayModals(view)
+	}
+
+	if g.compact {
+		compact := lipgloss.JoinHorizontal(lipgloss.Top,
+			render(panelPARA, g.leftWidth, g.paraHeight),
+			render(panelContent, g.rightWidth, g.contentHeight),
+		)
+		view := lipgloss.JoinVertical(lipgloss.Left, compact, ansi.Truncate(m.statusLine(), m.width, "…"))
 		return m.overlayModals(view)
 	}
 

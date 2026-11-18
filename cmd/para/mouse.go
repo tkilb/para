@@ -27,6 +27,12 @@ func (m model) hitAt(x, y int) (hit, bool) {
 	if m.zoomed {
 		return hit{m.focus, x, y}, x < m.width && y < m.height-1
 	}
+	if g.compact {
+		if x < g.leftWidth {
+			return hit{panelPARA, x, y}, y < g.paraHeight
+		}
+		return hit{panelContent, x - g.leftWidth, y}, y < g.contentHeight
+	}
 	if x < g.leftWidth {
 		switch {
 		case y < g.blankHeight:

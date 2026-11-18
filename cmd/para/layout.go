@@ -14,6 +14,9 @@ const (
 	// blankHeight is the outer height of the empty [1] pane: one row plus the
 	// border.
 	blankHeight = 3
+	// compactHeight is the grid height below which the layout is compact:
+	// only PARA and Content are drawn, each the full height of its column.
+	compactHeight = 24
 	// leftWidthPercent is the left column share of the terminal width.
 	leftWidthPercent = 30
 )
@@ -23,6 +26,14 @@ type grid struct {
 	leftWidth, rightWidth                  int
 	blankHeight, paraHeight, relatedHeight int
 	titleHeight, contentHeight, infoHeight int
+	// compact is set when the terminal is short: the [1] pane, Title,
+	// Related and Info are hidden (their heights are 0).
+	compact bool
+}
+
+// shows reports whether the grid draws the panel p.
+func (g grid) shows(p panelID) bool {
+	return !g.compact || p == panelPARA || p == panelContent
 }
 
 // zoomed gives the focused panel the whole width x height, as lazytask does
@@ -47,7 +58,7 @@ func (g grid) zoomed(focus panelID, width, height int) grid {
 
 // computeGrid splits width x height into the two-column layout: the empty
 // one-row [1] pane, PARA and Related on the left; Title, Content and Info, top to bottom, on the
-// right. Related takes about a quarter of the height and Info a fixed five rows, PARA
+// right. Below compactHeight only PARA and Content are drawn. Related takes about a quarter of the height and Info a fixed five rows, PARA
 // and Content take the rest.
 func computeGrid(width, height int) grid {
 	g := grid{
@@ -55,6 +66,13 @@ func computeGrid(width, height int) grid {
 		blankHeight: blankHeight,
 	}
 	g.rightWidth = width - g.leftWidth
+
+	if height < compactHeight {
+		g.blankHeight = 0
+		g.compact = true
+		g.paraHeight, g.contentHeight = height, height
+		return g
+	}
 
 	side := max(height/4, minSideHeight)
 	g.relatedHeight = side
