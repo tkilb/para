@@ -235,7 +235,7 @@ func renderRow(r row, width int, cursor bool, mk mark, marked bool, query string
 			barSel = nameSel // the bullet matches the name's color
 		}
 		return barSel.Render(bar) +
-			selStyle.Render(badge+" ") + highlight(name, query, nameSel, true) + selStyle.Render(gap) + countSel.Render(right)
+			selStyle.Bold(false).Render(badge) + selStyle.Render(" ") + highlight(name, query, nameSel, true) + selStyle.Render(gap) + countSel.Render(right)
 	}
 	nameStyle := lipgloss.NewStyle()
 	switch {
