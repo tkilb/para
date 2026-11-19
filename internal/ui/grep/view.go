@@ -33,7 +33,7 @@ const (
 	beforeHit = 3
 	noQuery   = "(type to search)"
 	noMatch   = "(no matches)"
-	hint      = "enter open  tab fields  ctrl+f filters: %s  esc cancel"
+	hint      = "enter open  tab fields  ctrl+f filters%s  esc cancel"
 )
 
 // The popup's colors: the gruvbox-material palette of the Content panel.
@@ -359,18 +359,22 @@ func clampSpans(spans [][2]int, width int, line string) [][2]int {
 	return out
 }
 
-// hint is the footer's key help, with the filters of the ctrl+f popup that
-// are on: how recently notes changed, and whether _source.md files are
-// searched.
+// hint is the footer's key help, followed by the filters of the ctrl+f popup
+// that are not at their start: how recently notes changed, and _source.md
+// files being searched.
 func (m Model) hint() string {
-	state := "_source.md hidden"
-	if m.showSource {
-		state = "_source.md shown"
-	}
+	var on []string
 	if m.since > 0 {
-		state = strings.ToLower(sinceOptions[m.since].Label) + ", " + state
+		on = append(on, strings.ToLower(sinceOptions[m.since].Label))
 	}
-	return fmt.Sprintf(hint, state)
+	if m.showSource {
+		on = append(on, "_source.md shown")
+	}
+	suffix := ""
+	if len(on) > 0 {
+		suffix = ": " + strings.Join(on, ", ")
+	}
+	return fmt.Sprintf(hint, suffix)
 }
 
 // filtersBoxWidth is the outer width of the filters popup.

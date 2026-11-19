@@ -79,11 +79,12 @@ const day = 24 * time.Hour
 // sinceOptions are the choices of the "Modified since" filter; the first is
 // no filter.
 var sinceOptions = []sinceOption{
-	{"Any time", 0},
-	{"Past 24 hours", day},
-	{"Past 7 days", 7 * day},
-	{"Past 30 days", 30 * day},
-	{"Past year", 365 * day},
+	{"Anytime", 0},
+	{"7 days", 7 * day},
+	{"14 days", 14 * day},
+	{"30 days", 30 * day},
+	{"60 days", 60 * day},
+	{"90 days", 90 * day},
 }
 
 // The rows of the filters popup.
