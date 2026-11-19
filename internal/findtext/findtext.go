@@ -5,6 +5,7 @@ package findtext
 
 import (
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/tkilb/para/internal/store"
@@ -129,5 +130,32 @@ func OfKind(lines []Line, k store.Kind) []Line {
 			out = append(out, l)
 		}
 	}
+	return out
+}
+
+// ChildDirs returns the names of the folders that could come next in the slash
+// path, for completing it: the folders inside its parent (the part up to the
+// last slash) whose names start with the rest, ignoring case, sorted ignoring
+// case. A note is not a folder. A name keeps the case it has on disk.
+func ChildDirs(rels []string, path string) []string {
+	path = strings.TrimLeft(filepath.ToSlash(path), "/")
+	cut := strings.LastIndex(path, "/") + 1
+	parent, partial := strings.ToLower(path[:cut]), strings.ToLower(path[cut:])
+	seen := map[string]bool{}
+	var out []string
+	for _, rel := range rels {
+		rel = filepath.ToSlash(rel)
+		if len(rel) <= cut || strings.ToLower(rel[:cut]) != parent {
+			continue
+		}
+		seg, _, isDir := strings.Cut(rel[cut:], "/")
+		key := strings.ToLower(seg)
+		if !isDir || seen[key] || !strings.HasPrefix(key, partial) {
+			continue
+		}
+		seen[key] = true
+		out = append(out, seg)
+	}
+	sort.Slice(out, func(i, j int) bool { return strings.ToLower(out[i]) < strings.ToLower(out[j]) })
 	return out
 }

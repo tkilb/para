@@ -44,6 +44,7 @@ agent and never call a model.
 | 18 | Switch notebook (`B`) while an import runs | The finished import lands in the notebook it started in. The status message still names the folder, and the notebook now open is not reloaded or disturbed. |
 | 19 | Press `ctrl+/`, search a word that is only in an import's `_source.md`, then press `ctrl+s` | At first there are no matches and the hint reads `_source.md hidden`. After `ctrl+s` the transcript lines are listed and the hint reads `shown`; `ctrl+s` again hides them. Lines of other notes in the folder are listed either way. |
 | 20 | In `ctrl+/`, `tab` to Kind and press `→` | The Kind box shows `fact`, then the other kinds, then `unset`, then wraps to `All`. With a kind chosen only the lines of notes of that kind are listed, and the count follows. `unset` lists notes with no kind. Space, Kind and Dir narrow together, and changing the Space clears the Dir. |
+| 21 | In `ctrl+/`, `tab` to Dir | The folders inside the space are listed under the box as `tab: name/  name/`. Type the start of one: the list narrows. `tab` completes it with a `/` when one matches, or to the start several share; then the list shows the folders inside it. With nothing left to complete, `tab` moves to the query. `shift+tab` always moves back. |
 
 ## Known limits
 

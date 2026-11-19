@@ -138,3 +138,33 @@ func TestOfKindKeepsOnlyThatKind(t *testing.T) {
 	assert.Empty(t, OfKind(lines, store.KindRumor))
 	assert.Len(t, lines, 3, "the input is not changed")
 }
+
+func TestChildDirsListsTheFoldersUnderAPathPrefix(t *testing.T) {
+	rels := []string{
+		"projects/alpha/a.md",
+		"projects/alpha/deep/b.md",
+		"projects/Beta/c.md",
+		"projects/top.md",
+		"areas/home/d.md",
+		"inbox/e.md",
+	}
+	tests := []struct {
+		name, path string
+		want       []string
+	}{
+		{"empty path lists the top folders", "", []string{"areas", "inbox", "projects"}},
+		{"a partial name filters, ignoring case", "PRO", []string{"projects"}},
+		{"a trailing slash lists the children", "projects/", []string{"alpha", "Beta"}},
+		{"a partial child", "projects/a", []string{"alpha"}},
+		{"the parent is matched ignoring case", "Projects/b", []string{"Beta"}},
+		{"a file is not a folder", "projects/t", nil},
+		{"deeper", "projects/alpha/", []string{"deep"}},
+		{"a leading slash is ignored", "/areas/", []string{"home"}},
+		{"no match", "zzz", nil},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, ChildDirs(rels, tt.path))
+		})
+	}
+}

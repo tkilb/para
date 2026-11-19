@@ -74,6 +74,7 @@ const kindAll store.Kind = ""
 type Model struct {
 	field  textinput.Model
 	lines  []findtext.Line
+	rels   []string        // the notes of lines, once each, for completing the dir
 	scoped []findtext.Line // lines inside the space and the path filter
 
 	spaces   []Space // spaces[0] is All
@@ -123,9 +124,67 @@ func New(lines []findtext.Line, capped bool, load Loader, opts Options) (Model, 
 			m.space = i
 		}
 	}
+	m.rels = noteRels(lines)
 	m.kinds = append(append([]store.Kind{kindAll}, store.Kinds()...), store.KindUnset)
 	m.scoped = m.scope()
 	return m, textinput.Blink
+}
+
+// noteRels returns the paths of the notes in lines, once each, in order.
+func noteRels(lines []findtext.Line) []string {
+	var rels []string
+	for i, l := range lines {
+		if i == 0 || l.Rel != lines[i-1].Rel {
+			rels = append(rels, l.Rel)
+		}
+	}
+	return rels
+}
+
+// dirHints returns the folders that could come next in the dir field: the
+// ones inside the chosen space (or the notebook, for All) that start with
+// what is typed after its last slash.
+func (m Model) dirHints() []string {
+	typed := strings.TrimLeft(strings.TrimSpace(m.dirField.Value()), "/")
+	if d := m.spaces[m.space].Dir; d != "" {
+		return findtext.ChildDirs(m.rels, d+"/"+typed)
+	}
+	return findtext.ChildDirs(m.rels, typed)
+}
+
+// completeDir extends the dir field to the folders that match: to the one
+// folder with a slash after it, or to the start the folders share. It reports
+// false when there is nothing to add, so tab moves on.
+func (m Model) completeDir() (Model, bool) {
+	names := m.dirHints()
+	if len(names) == 0 {
+		return m, false
+	}
+	typed := strings.TrimLeft(strings.TrimSpace(m.dirField.Value()), "/")
+	parent := typed[:strings.LastIndex(typed, "/")+1]
+	next := commonPrefix(names)
+	if len(names) == 1 {
+		next += "/"
+	}
+	if parent+next == typed {
+		return m, false
+	}
+	m.dirField.SetValue(parent + next)
+	return m.rescope(), true
+}
+
+// commonPrefix is the longest start shared by names, ignoring case, in the
+// case of the first.
+func commonPrefix(names []string) string {
+	n := len(names[0])
+	for _, s := range names[1:] {
+		i := 0
+		for i < n && i < len(s) && strings.EqualFold(names[0][i:i+1], s[i:i+1]) {
+			i++
+		}
+		n = i
+	}
+	return names[0][:n]
 }
 
 // scope returns the lines inside the chosen space and path filter. The path
@@ -207,7 +266,8 @@ func (m Model) Chosen() (search.Hit, bool) {
 
 // Update handles a message: the arrows move through the lines, page up and
 // down move by a page, ctrl+d and ctrl+u scroll the preview, tab and
-// shift+tab move between the query, space, kind and dir fields, ctrl+s shows or
+// shift+tab move between the query, space, kind and dir fields (tab in dir
+// completes the folder first), ctrl+s shows or
 // hides the lines of _source.md files, enter chooses,
 // esc cancels, and anything else edits the field in focus (left, right, h, l
 // and space change the space or kind).
@@ -237,6 +297,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd, Outcome) {
 			m.showSource = !m.showSource
 			return m.rescope(), nil, Pending
 		case "tab":
+			if m.focus == focusDir {
+				if done, ok := m.completeDir(); ok {
+					return done, nil, Pending
+				}
+			}
 			m, cmd := m.setFocus((m.focus + 1) % focusCount)
 			return m, cmd, Pending
 		case "shift+tab":

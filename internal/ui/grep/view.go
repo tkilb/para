@@ -118,7 +118,7 @@ func (m Model) dirPane(width int) string {
 	}
 	footer := panel.Footer{}
 	if focused {
-		footer = panel.Footer{Left: "path in the space", Tint: true}
+		footer = panel.Footer{Left: m.dirFooter(), Tint: true}
 	}
 	return panel.Frame("Dir", ansi.Truncate(body+in.View(), width, ""), width, 1, focused, footer)
 }
@@ -319,4 +319,14 @@ func (m Model) hint() string {
 		state = "shown"
 	}
 	return fmt.Sprintf(hint, state)
+}
+
+// dirFooter is the help under the dir field: the folders tab would complete
+// to, else what the field is for.
+func (m Model) dirFooter() string {
+	names := m.dirHints()
+	if len(names) == 0 {
+		return "path in the space"
+	}
+	return "tab: " + strings.Join(names, "/  ") + "/"
 }
