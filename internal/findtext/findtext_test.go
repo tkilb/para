@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,6 +25,9 @@ func TestLinesMatchWhatContentShows(t *testing.T) {
 	// Content trims leading and trailing newlines, so line 0 is "first".
 	put(t, root, "inbox/a.md", "---\nuid: u\ntitle: a\n---\n\n\nfirst\n\n  second  \nthird\n\n")
 	res := Lines(store.NewMarkdown(root), []string{"inbox/a.md"})
+	for i := range res.Lines {
+		res.Lines[i].Mod = time.Time{} // the time has its own test
+	}
 
 	assert.False(t, res.Truncated)
 	assert.Equal(t, []Line{
@@ -186,4 +190,28 @@ func TestDropLastSegmentRemovesTheEndOfASlashPath(t *testing.T) {
 			assert.Equal(t, tt.want, DropLastSegment(tt.in))
 		})
 	}
+}
+
+func TestLinesCarryTheModificationTimeOfTheirNote(t *testing.T) {
+	root := t.TempDir()
+	put(t, root, "inbox/a.md", "text\n")
+	when := time.Date(2026, 3, 1, 12, 0, 0, 0, time.UTC)
+	require.NoError(t, os.Chtimes(filepath.Join(root, "inbox/a.md"), when, when))
+	res := Lines(store.NewMarkdown(root), []string{"inbox/a.md"})
+
+	require.Len(t, res.Lines, 1)
+	assert.True(t, res.Lines[0].Mod.Equal(when), "got %v", res.Lines[0].Mod)
+}
+
+func TestChangedSinceKeepsRecentAndUnknownTimes(t *testing.T) {
+	cutoff := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
+	lines := []Line{
+		{Rel: "old.md", Mod: cutoff.Add(-time.Second)},
+		{Rel: "edge.md", Mod: cutoff},
+		{Rel: "new.md", Mod: cutoff.Add(time.Hour)},
+		{Rel: "unknown.md"},
+	}
+
+	assert.Equal(t, []Line{lines[1], lines[2], lines[3]}, ChangedSince(lines, cutoff))
+	assert.Len(t, lines, 4, "the input is not changed")
 }

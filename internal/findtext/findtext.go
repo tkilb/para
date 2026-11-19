@@ -4,9 +4,11 @@
 package findtext
 
 import (
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/tkilb/para/internal/store"
 	"github.com/tkilb/para/internal/textsafe"
@@ -29,6 +31,8 @@ type Line struct {
 	Rel string
 	// Kind is the kind of the note, KindUnset when it has none.
 	Kind store.Kind
+	// Mod is when the note's file last changed, zero when that is unknown.
+	Mod time.Time
 	// Index is the line's position in the note as the Content panel shows it
 	// (properties hidden, surrounding newlines trimmed), counting blank lines.
 	Index int
@@ -70,6 +74,7 @@ func Lines(s store.Store, rels []string) Result {
 		if err != nil {
 			continue
 		}
+		mod := modTime(s, rel)
 		text := textsafe.Sanitize(strings.Trim(n.Body, "\r\n"))
 		for i, raw := range strings.Split(text, "\n") {
 			line := strings.TrimSpace(raw)
@@ -80,10 +85,24 @@ func Lines(s store.Store, rels []string) Result {
 				res.Truncated = true
 				return res
 			}
-			res.Lines = append(res.Lines, Line{Rel: rel, Kind: n.Kind, Index: i, Text: cut(line)})
+			res.Lines = append(res.Lines, Line{Rel: rel, Kind: n.Kind, Mod: mod, Index: i, Text: cut(line)})
 		}
 	}
 	return res
+}
+
+// modTime is when the file of the note at rel last changed, or the zero time
+// when it cannot be read.
+func modTime(s store.Store, rel string) time.Time {
+	abs, err := s.Path(rel)
+	if err != nil {
+		return time.Time{}
+	}
+	info, err := os.Stat(abs)
+	if err != nil {
+		return time.Time{}
+	}
+	return info.ModTime()
 }
 
 // cut limits line to maxLineRunes characters.
@@ -166,4 +185,17 @@ func ChildDirs(rels []string, path string) []string {
 func DropLastSegment(path string) string {
 	path = strings.TrimRight(path, "/")
 	return path[:strings.LastIndex(path, "/")+1]
+}
+
+// ChangedSince returns the lines of notes changed at or after cutoff. A line
+// whose time is unknown is kept, since the note may well be recent. The input
+// is left as it is.
+func ChangedSince(lines []Line, cutoff time.Time) []Line {
+	out := make([]Line, 0, len(lines))
+	for _, l := range lines {
+		if l.Mod.IsZero() || !l.Mod.Before(cutoff) {
+			out = append(out, l)
+		}
+	}
+	return out
 }

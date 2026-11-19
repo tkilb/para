@@ -33,7 +33,7 @@ const (
 	beforeHit = 3
 	noQuery   = "(type to search)"
 	noMatch   = "(no matches)"
-	hint      = "enter open  tab filters  ctrl+s _source.md %s  esc cancel"
+	hint      = "enter open  tab fields  ctrl+f filters: %s  esc cancel"
 )
 
 // The popup's colors: the gruvbox-material palette of the Content panel.
@@ -78,9 +78,14 @@ func (m Model) View(screenW, screenH int) string {
 		m.previewPane(right-2, inner),
 	)
 	if m.suggesting() {
-		panes = overlay(panes, m.suggestionBox(right-2, inner), left)
+		panes = overlay(panes, m.suggestionBox(right-2, inner), left, 0)
 	}
-	return lipgloss.JoinVertical(lipgloss.Left, filters, panes)
+	view := lipgloss.JoinVertical(lipgloss.Left, filters, panes)
+	if m.filtersOpen {
+		x := max((left+right-filtersBoxWidth)/2, 0)
+		view = overlay(view, m.filtersBox(), x, filterRows+1)
+	}
+	return view
 }
 
 // maxSuggestions is the most folders the dir suggestions show at once.
@@ -106,17 +111,17 @@ func (m Model) suggestionBox(width, height int) string {
 	return panel.Frame("Folders", strings.Join(lines, "\n"), width, len(lines), true, footer)
 }
 
-// overlay draws box over the lines of base from its top, starting at column
+// overlay draws box over the lines of base from line y, starting at column
 // x, keeping what base shows on either side.
-func overlay(base, box string, x int) string {
+func overlay(base, box string, x, y int) string {
 	baseLines, boxLines := strings.Split(base, "\n"), strings.Split(box, "\n")
 	for i, b := range boxLines {
-		if i >= len(baseLines) {
+		if y+i >= len(baseLines) {
 			break
 		}
-		line := baseLines[i]
+		line := baseLines[y+i]
 		rest := ansi.TruncateLeft(line, x+ansi.StringWidth(b), "")
-		baseLines[i] = ansi.Truncate(line, x, "") + b + rest
+		baseLines[y+i] = ansi.Truncate(line, x, "") + b + rest
 	}
 	return strings.Join(baseLines, "\n")
 }
@@ -354,13 +359,47 @@ func clampSpans(spans [][2]int, width int, line string) [][2]int {
 	return out
 }
 
-// hint is the footer's key help, with whether _source.md files are searched.
+// hint is the footer's key help, with the filters of the ctrl+f popup that
+// are on: how recently notes changed, and whether _source.md files are
+// searched.
 func (m Model) hint() string {
-	state := "hidden"
+	state := "_source.md hidden"
 	if m.showSource {
-		state = "shown"
+		state = "_source.md shown"
+	}
+	if m.since > 0 {
+		state = strings.ToLower(sinceOptions[m.since].Label) + ", " + state
 	}
 	return fmt.Sprintf(hint, state)
+}
+
+// filtersBoxWidth is the outer width of the filters popup.
+const filtersBoxWidth = 44
+
+// filtersBox draws the filters popup: a row for each filter with its choice
+// between arrows, the row the keys act on highlighted.
+func (m Model) filtersBox() string {
+	source := "hidden"
+	if m.showSource {
+		source = "shown"
+	}
+	rows := [filterCount][2]string{
+		rowSince:  {"Modified since", sinceOptions[m.since].Label},
+		rowSource: {"_source.md", source},
+	}
+	inner := filtersBoxWidth - 2
+	lines := make([]string, 0, filterCount)
+	for i, r := range rows {
+		value := dimStyle.Render("‹ ") + promptStyle.Render(r[1]) + dimStyle.Render(" ›")
+		gap := strings.Repeat(" ", max(inner-ansi.StringWidth(r[0])-ansi.StringWidth(value)-1, 1))
+		line := ansi.Truncate(" "+r[0]+gap+value, inner, "…")
+		if i == m.filterRow {
+			line = lipgloss.NewStyle().Background(selBg).Render(ansi.Strip(line))
+		}
+		lines = append(lines, line)
+	}
+	footer := panel.Footer{Left: "↑/↓ row  ←/→ change  esc close", Tint: true}
+	return panel.Frame("Filters", strings.Join(lines, "\n"), inner, len(lines), true, footer)
 }
 
 // dirFooter is the help under the dir field: what the field is for.

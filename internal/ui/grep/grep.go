@@ -6,6 +6,7 @@ package grep
 
 import (
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -66,6 +67,32 @@ const (
 
 const allLabel = "All"
 
+// sinceOption is one choice of the "Modified since" filter. Within is how far
+// back a note may have changed, zero for any time.
+type sinceOption struct {
+	Label  string
+	Within time.Duration
+}
+
+const day = 24 * time.Hour
+
+// sinceOptions are the choices of the "Modified since" filter; the first is
+// no filter.
+var sinceOptions = []sinceOption{
+	{"Any time", 0},
+	{"Past 24 hours", day},
+	{"Past 7 days", 7 * day},
+	{"Past 30 days", 30 * day},
+	{"Past year", 365 * day},
+}
+
+// The rows of the filters popup.
+const (
+	rowSince = iota
+	rowSource
+	filterCount
+)
+
 // kindAll stands for every kind in the Kind filter. It is not a valid kind,
 // so it cannot clash with one the config adds.
 const kindAll store.Kind = ""
@@ -88,9 +115,15 @@ type Model struct {
 	focus    focus
 	capped   bool // the lines were cut at findtext.MaxLines
 	// showSource lists the lines of import transcripts (_source.md), which
-	// are left out until ctrl+s turns them on.
+	// are left out until the filters popup (ctrl+f) turns them on.
 	showSource bool
-	load       Loader
+	// since is the choice in sinceOptions: how recently a note changed.
+	since int
+	// filtersOpen is set while the filters popup is shown, and filterRow is
+	// the row of it the keys act on.
+	filtersOpen bool
+	filterRow   int
+	load        Loader
 
 	res    search.Result
 	cursor int
@@ -206,6 +239,9 @@ func (m Model) scope() []findtext.Line {
 	if k := m.kinds[m.kind]; k != kindAll {
 		lines = findtext.OfKind(lines, k)
 	}
+	if w := sinceOptions[m.since].Within; w > 0 {
+		lines = findtext.ChangedSince(lines, time.Now().Add(-w))
+	}
 	prefix := strings.TrimLeft(strings.TrimSpace(m.dirField.Value()), "/")
 	if d := m.spaces[m.space].Dir; d != "" {
 		prefix = d + "/" + prefix
@@ -259,6 +295,39 @@ func (m Model) pickKind(delta int) Model {
 	return m.rescope()
 }
 
+// filtersKey handles a key while the filters popup is open: up, down and tab
+// move between its rows, left, right and space change the row, and enter, esc
+// and ctrl+f close it. Other keys do nothing, so typing never reaches the
+// query behind it.
+func (m Model) filtersKey(k tea.KeyMsg) Model {
+	switch k.String() {
+	case "esc", "enter", "ctrl+f":
+		m.filtersOpen = false
+	case "up", "shift+tab", "ctrl+p":
+		m.filterRow = (m.filterRow + filterCount - 1) % filterCount
+	case "down", "tab", "ctrl+n":
+		m.filterRow = (m.filterRow + 1) % filterCount
+	case "left", "h", "shift+left":
+		return m.changeFilter(-1)
+	case "right", "l", " ", "shift+right":
+		return m.changeFilter(1)
+	}
+	return m
+}
+
+// changeFilter moves the filter in the current row delta places, wrapping,
+// and searches again.
+func (m Model) changeFilter(delta int) Model {
+	switch m.filterRow {
+	case rowSince:
+		n := len(sinceOptions)
+		m.since = (m.since + delta + n) % n
+	case rowSource:
+		m.showSource = !m.showSource
+	}
+	return m.rescope()
+}
+
 // WithScreen tells the popup how big the terminal is, so paging and the
 // preview scroll move by what the panes show.
 func (m Model) WithScreen(w, h int) Model {
@@ -277,12 +346,15 @@ func (m Model) Chosen() (search.Hit, bool) {
 // Update handles a message: the arrows move through the lines, page up and
 // down move by a page, ctrl+d and ctrl+u scroll the preview, tab and
 // shift+tab move between the query, space, kind and dir fields (up and down in dir choose from its folder suggestions and enter fills one in;
-// ctrl+u clears the dir and ctrl+w removes its last folder name), ctrl+s shows or
-// hides the lines of _source.md files, enter chooses,
+// ctrl+u clears the dir and ctrl+w removes its last folder name), ctrl+f opens the
+// filters popup, enter chooses,
 // esc cancels, and anything else edits the field in focus (left, right, h, l
 // and space change the space or kind).
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd, Outcome) {
 	if k, ok := msg.(tea.KeyMsg); ok {
+		if m.filtersOpen {
+			return m.filtersKey(k), nil, Pending
+		}
 		if m.focus == focusDir {
 			switch k.String() {
 			case "ctrl+u":
@@ -323,9 +395,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd, Outcome) {
 			return m.scrollPreview(-m.pageRows() / 2), nil, Pending
 		case "ctrl+d":
 			return m.scrollPreview(m.pageRows() / 2), nil, Pending
-		case "ctrl+s":
-			m.showSource = !m.showSource
-			return m.rescope(), nil, Pending
+		case "ctrl+f":
+			m.filtersOpen, m.filterRow = true, rowSince
+			return m, nil, Pending
 		case "tab":
 			m, cmd := m.setFocus((m.focus + 1) % focusCount)
 			return m, cmd, Pending
