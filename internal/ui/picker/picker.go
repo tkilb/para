@@ -136,6 +136,33 @@ func (m Model) WithScreenHeight(h int) Model {
 	return m
 }
 
+// SetItems replaces the items, keeping what is typed, and matches again with
+// the highlight on the best match.
+func (m Model) SetItems(items []Item) Model {
+	m.items = items
+	return m.refilter()
+}
+
+// SetFocused focuses or blurs the query field, for an owner that gives the
+// keys to something else for a while. The command blinks the cursor.
+func (m Model) SetFocused(on bool) (Model, tea.Cmd) {
+	if !on {
+		m.field.Blur()
+		return m, nil
+	}
+	return m, m.field.Focus()
+}
+
+// BoxWidth is the outer width of the box View draws on a terminal
+// screenWidth columns wide.
+func (m Model) BoxWidth(screenWidth int) int {
+	widest := maxBoxWidth
+	if m.large {
+		widest = largeMaxBoxWidth
+	}
+	return min(max(screenWidth-boxMargin, minBoxWidth), widest)
+}
+
 // Large makes the picker's box wider and taller than usual.
 func (m Model) Large() Model {
 	m.large = true
@@ -340,12 +367,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd, Outcome) {
 // View renders the picker as a bordered box sized for a screenWidth x
 // screenHeight terminal; draw it with popup.Overlay.
 func (m Model) View(screenWidth, screenHeight int) string {
-	widest := maxBoxWidth
-	if m.large {
-		widest = largeMaxBoxWidth
-	}
-	boxWidth := min(max(screenWidth-boxMargin, minBoxWidth), widest)
-	inner := boxWidth - 2
+	inner := m.BoxWidth(screenWidth) - 2
 	rowLines, cursorLine := m.listLines(inner)
 	rows := min(m.pageRows(screenHeight), max(len(rowLines), 1))
 	if m.preview || m.tall {

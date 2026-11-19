@@ -242,7 +242,7 @@ func (m model) runHistory(done, failed string, run func() (string, error)) model
 // question, prompt, form, picker, the help or a notification.
 func (m model) overlayOpen() bool {
 	_, notice := m.popups.Current()
-	return m.showingHelp || m.form != nil || m.clipForm != nil || m.picker != nil || m.grep != nil ||
+	return m.showingHelp || m.form != nil || m.clipForm != nil || m.picker != nil || m.grep != nil || m.notefind != nil ||
 		m.question != nil || m.pending != nil || (m.input != nil && !m.input.inline) || notice
 }
 
@@ -263,6 +263,8 @@ func (m model) overlayModals(view string) string {
 		view = popup.Overlay(view, m.picker.View(m.width, m.height), m.width, m.height)
 	case m.grep != nil:
 		view = popup.Overlay(view, m.grep.View(m.width, m.height), m.width, m.height)
+	case m.notefind != nil:
+		view = popup.Overlay(view, m.notefind.View(m.width, m.height), m.width, m.height)
 	case m.question != nil:
 		view = popup.Overlay(view, popup.ConfirmBox(m.question.prompt, m.width), m.width, m.height)
 	case m.input != nil && m.input.inline:

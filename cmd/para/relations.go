@@ -23,7 +23,6 @@ const (
 	pickKind                           // set the kind of the note at pickerFor
 	pickExtractKind                    // choose the kind of a note being extracted
 	pickNotebook                       // choose the notebook to open
-	pickFile                           // jump to a note found by name
 	pickAppendTemplate                 // append a template to the note at pickerFor
 	pickGlossary                       // browse the glossary (see glossary.go)
 	pickMark                           // jump to a marked note (see mark.go)
@@ -78,8 +77,6 @@ func (m model) pickerKey(msg tea.Msg) (model, tea.Cmd) {
 		switch m.pickerOp {
 		case pickNotebook:
 			return m.chooseNotebook(item.Value)
-		case pickFile:
-			return m.chooseFoundNote(item.Value), nil
 		case pickKind:
 			return m.setKind(m.pickerFor, store.ParseKind(item.Value)), nil
 		case pickExtractKind:

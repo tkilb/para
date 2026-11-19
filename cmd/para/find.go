@@ -11,7 +11,9 @@ import (
 	"github.com/tkilb/para/internal/findtext"
 	"github.com/tkilb/para/internal/store"
 	"github.com/tkilb/para/internal/textsafe"
+	"github.com/tkilb/para/internal/ui/filterbar"
 	"github.com/tkilb/para/internal/ui/grep"
+	"github.com/tkilb/para/internal/ui/notefind"
 	"github.com/tkilb/para/internal/ui/para"
 	"github.com/tkilb/para/internal/ui/picker"
 	"github.com/tkilb/para/internal/ui/popup"
@@ -32,23 +34,49 @@ func noteName(rel string) string {
 // openFileFinder lists every note in the notebook by its path without .md
 // (such as "projects/deep/Rocket Plan"), sorted by path, so what is typed
 // matches the folders as well as the name, though a word that matches the
-// file name ranks above one that only matches a folder. It jumps PARA to the
-// one chosen.
+// file name ranks above one that only matches a folder. The Space, Kind and
+// Dir boxes and the ctrl+f popup narrow the list, as in the text search. It
+// jumps PARA to the one chosen.
 func (m model) openFileFinder() (model, tea.Cmd) {
 	rels := slices.Clone(m.links.Rels())
-	if len(rels) == 0 {
-		return m.notify(popup.Info, "There are no notes to find."), nil
-	}
 	slices.SortFunc(rels, func(a, b string) int {
 		return strings.Compare(strings.ToLower(a), strings.ToLower(b))
 	})
-	items := make([]picker.Item, len(rels))
-	for i, rel := range rels {
-		items[i] = picker.Item{Label: strings.TrimSuffix(filepath.ToSlash(rel), filepath.Ext(rel)), Name: noteName(rel), Value: rel}
+	notes := findtext.Notes(m.store, rels)
+	if len(notes) == 0 {
+		return m.notify(popup.Info, "There are no notes to find."), nil
 	}
-	p, cmd := picker.New(findFileTitle, items)
-	p = p.Large()
-	m.picker, m.pickerOp = &p, pickFile
+	item := func(rel string) picker.Item {
+		return picker.Item{Label: strings.TrimSuffix(filepath.ToSlash(rel), filepath.Ext(rel)), Name: noteName(rel), Value: rel}
+	}
+	f, cmd := notefind.New(findFileTitle, notes, item, filterbar.Options{Spaces: filterSpaces()})
+	m.notefind = &f
+	return m, cmd
+}
+
+// filterSpaces are the five PARA folders, for the Space box of a finder.
+func filterSpaces() []filterbar.Space {
+	labels, dirs := para.SpaceDirs()
+	spaces := make([]filterbar.Space, len(dirs))
+	for i := range dirs {
+		spaces[i] = filterbar.Space{Label: labels[i], Dir: dirs[i]}
+	}
+	return spaces
+}
+
+// notefindKey feeds a message to the open note finder and applies its
+// outcome.
+func (m model) notefindKey(msg tea.Msg) (model, tea.Cmd) {
+	f, cmd, out := m.notefind.Update(msg, m.height)
+	m.notefind = &f
+	switch out {
+	case notefind.Cancelled:
+		m.notefind = nil
+	case notefind.Chosen:
+		item, _ := f.Chosen()
+		m.notefind = nil
+		return m.chooseFoundNote(item.Value), nil
+	}
 	return m, cmd
 }
 
@@ -62,14 +90,9 @@ func (m model) openTextFinder() (model, tea.Cmd) {
 	if len(res.Lines) == 0 {
 		return m.notify(popup.Info, "There is no text to search in this notebook."), nil
 	}
-	labels, dirs := para.SpaceDirs()
-	spaces := make([]grep.Space, len(dirs))
-	for i := range dirs {
-		spaces[i] = grep.Space{Label: labels[i], Dir: dirs[i]}
-	}
 	space, sub := m.para.Location()
 	g, cmd := grep.New(res.Lines, res.Truncated, previewLoader(m.store),
-		grep.Options{Spaces: spaces, Space: space, Dir: sub})
+		grep.Options{Spaces: filterSpaces(), Space: space, Dir: sub})
 	m.grep = &g
 	return m, cmd
 }

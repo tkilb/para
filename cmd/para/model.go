@@ -25,6 +25,7 @@ import (
 	"github.com/tkilb/para/internal/ui/grep"
 	"github.com/tkilb/para/internal/ui/helppopup"
 	"github.com/tkilb/para/internal/ui/info"
+	"github.com/tkilb/para/internal/ui/notefind"
 	"github.com/tkilb/para/internal/ui/noteform"
 	"github.com/tkilb/para/internal/ui/panel"
 	"github.com/tkilb/para/internal/ui/para"
@@ -206,7 +207,9 @@ type model struct {
 	// pickerFor.
 	picker *picker.Model
 	// grep is the open text search.
-	grep      *grep.Model
+	grep *grep.Model
+	// notefind is the open note finder.
+	notefind  *notefind.Model
 	pickerFor string
 	pickerOp  pickerOp
 	// pickerKind is the kind the note had when the kind picker opened.
@@ -491,6 +494,11 @@ func (m model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.grep = &g
 			return m, cmd
 		}
+		if m.notefind != nil {
+			f, cmd, _ := m.notefind.Update(msg, m.height)
+			m.notefind = &f
+			return m, cmd
+		}
 		if m.form != nil {
 			f, cmd := m.form.Blink(msg)
 			m.form = &f
@@ -531,6 +539,8 @@ func (m model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m.pickerKey(msg)
 		case m.grep != nil:
 			return m.grepKey(msg)
+		case m.notefind != nil:
+			return m.notefindKey(msg)
 		case m.pending != nil:
 			return m.answer(key)
 		case m.input != nil:

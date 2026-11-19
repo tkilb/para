@@ -59,7 +59,7 @@ func (m model) hitAt(x, y int) (hit, bool) {
 // modalOpen reports whether a popup, prompt or other modal has the keyboard.
 func (m model) modalOpen() bool {
 	return m.popups.Active() || m.showingHelp || m.form != nil || m.clipForm != nil ||
-		m.question != nil || m.picker != nil || m.grep != nil || m.pending != nil || m.input != nil
+		m.question != nil || m.picker != nil || m.grep != nil || m.notefind != nil || m.pending != nil || m.input != nil
 }
 
 // updateMouse handles a mouse event. While a modal is open the grid is
@@ -99,7 +99,7 @@ func (m model) modalMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		if msg.Button == tea.MouseButtonLeft {
 			m.popups = m.popups.Dismiss()
 		}
-	case m.showingHelp || m.picker != nil || m.grep != nil:
+	case m.showingHelp || m.picker != nil || m.grep != nil || m.notefind != nil:
 		switch msg.Button {
 		case tea.MouseButtonWheelUp:
 			return m.updateKey(keyUp)
