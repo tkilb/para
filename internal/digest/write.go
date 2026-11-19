@@ -84,7 +84,7 @@ type Result struct {
 	Warnings []string
 }
 
-// Begin creates inbox/IMPORT_YYYY-MM-DD_<name>/ and writes src's text to
+// Begin creates inbox/IMPORT_YYYY-MM-DD <name>/ and writes src's text to
 // _source.md in it, before any agent runs, so nothing is lost if the agent
 // fails. The name comes from src.Name, cleaned, with a number added when the
 // folder exists. kind is the import kind (see ImportKind); a text that is
@@ -95,7 +95,7 @@ func Begin(s store.Store, now time.Time, kind store.Kind, src loader.Source) (*F
 		return nil, ErrEmptySource
 	}
 	f := &Folder{s: s, now: now, kind: kind, src: src}
-	base := FolderPrefix + now.Format(dayLayout) + "_" + sourceName(src)
+	base := FolderPrefix + now.Format(dayLayout) + " " + sourceName(src)
 	rel, err := f.freeFolder(base, "")
 	if err != nil {
 		return nil, err
@@ -234,14 +234,14 @@ func (f *Folder) setSource(value string) error {
 	return nil
 }
 
-// renameToTopic moves the folder to IMPORT_<date>_<topic>, with a number
+// renameToTopic moves the folder to IMPORT_<date> <topic>, with a number
 // added when that is taken. An empty or unchanged name does nothing.
 func (f *Folder) renameToTopic(topic string) error {
 	name := cleanName(topic)
 	if name == "" || f.keepName {
 		return nil
 	}
-	want := FolderPrefix + f.now.Format(dayLayout) + "_" + name
+	want := FolderPrefix + f.now.Format(dayLayout) + " " + name
 	if want == filepath.Base(f.Rel) {
 		return nil
 	}

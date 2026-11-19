@@ -66,7 +66,7 @@ func TestBeginCreatesTheFolderAndSource(t *testing.T) {
 	f, err := Begin(s, day, importKind, fileSource("Standup 2026-11-03", "Sam: hello\nAnna: hi"))
 	require.NoError(t, err)
 
-	assert.Equal(t, "inbox/IMPORT_2026-11-03_Standup 2026-11-03", f.Rel)
+	assert.Equal(t, "inbox/IMPORT_2026-11-03 Standup 2026-11-03", f.Rel)
 	assert.Equal(t, []string{"_source.md"}, names(t, root, f.Rel))
 
 	n := readNote(t, root, f.Rel+"/_source.md")
@@ -92,7 +92,7 @@ func TestBeginWebSourceRecordsTheAddress(t *testing.T) {
 	src := loader.Source{Kind: loader.Web, Name: "Pricing Rules", Origin: "https://wiki.example.com/pricing", Text: "# Pricing Rules\n\nbody"}
 	f, err := Begin(s, day, importKind, src)
 	require.NoError(t, err)
-	assert.Equal(t, "inbox/IMPORT_2026-11-03_Pricing Rules", f.Rel)
+	assert.Equal(t, "inbox/IMPORT_2026-11-03 Pricing Rules", f.Rel)
 	assert.Equal(t, "https://wiki.example.com/pricing", prop(readNote(t, root, f.Rel+"/_source.md"), "source"))
 }
 
@@ -102,14 +102,14 @@ func TestBeginFolderNames(t *testing.T) {
 		src  loader.Source
 		want string
 	}{
-		{"unsafe characters are removed", fileSource("Q3/Q4: plan", "x"), "IMPORT_2026-11-03_Q3Q4 plan"},
-		{"a path trick is only text", fileSource("../../evil", "x"), "IMPORT_2026-11-03_evil"},
-		{"control characters go", fileSource("a\x1b[2Jb\nc", "x"), "IMPORT_2026-11-03_a2Jb c"},
-		{"a file with no usable name", fileSource("///", "x"), "IMPORT_2026-11-03_file"},
-		{"clipboard", loader.Source{Kind: loader.Clipboard, Name: "clipboard", Text: "x"}, "IMPORT_2026-11-03_clipboard"},
-		{"an empty clipboard name", loader.Source{Kind: loader.Clipboard, Text: "x"}, "IMPORT_2026-11-03_clipboard"},
-		{"an empty web name", loader.Source{Kind: loader.Web, Origin: "https://a.example.com", Text: "x"}, "IMPORT_2026-11-03_web"},
-		{"a long name is cut", fileSource(strings.Repeat("a", 300), "x"), "IMPORT_2026-11-03_" + strings.Repeat("a", 80)},
+		{"unsafe characters are removed", fileSource("Q3/Q4: plan", "x"), "IMPORT_2026-11-03 Q3Q4 plan"},
+		{"a path trick is only text", fileSource("../../evil", "x"), "IMPORT_2026-11-03 evil"},
+		{"control characters go", fileSource("a\x1b[2Jb\nc", "x"), "IMPORT_2026-11-03 a2Jb c"},
+		{"a file with no usable name", fileSource("///", "x"), "IMPORT_2026-11-03 file"},
+		{"clipboard", loader.Source{Kind: loader.Clipboard, Name: "clipboard", Text: "x"}, "IMPORT_2026-11-03 clipboard"},
+		{"an empty clipboard name", loader.Source{Kind: loader.Clipboard, Text: "x"}, "IMPORT_2026-11-03 clipboard"},
+		{"an empty web name", loader.Source{Kind: loader.Web, Origin: "https://a.example.com", Text: "x"}, "IMPORT_2026-11-03 web"},
+		{"a long name is cut", fileSource(strings.Repeat("a", 300), "x"), "IMPORT_2026-11-03 " + strings.Repeat("a", 80)},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -129,9 +129,9 @@ func TestBeginTakenNameGetsANumber(t *testing.T) {
 	require.NoError(t, err)
 	c, err := Begin(s, day, importKind, fileSource("Standup", "three"))
 	require.NoError(t, err)
-	assert.Equal(t, "inbox/IMPORT_2026-11-03_Standup", a.Rel)
-	assert.Equal(t, "inbox/IMPORT_2026-11-03_Standup 2", b.Rel)
-	assert.Equal(t, "inbox/IMPORT_2026-11-03_Standup 3", c.Rel)
+	assert.Equal(t, "inbox/IMPORT_2026-11-03 Standup", a.Rel)
+	assert.Equal(t, "inbox/IMPORT_2026-11-03 Standup 2", b.Rel)
+	assert.Equal(t, "inbox/IMPORT_2026-11-03 Standup 3", c.Rel)
 	assert.Equal(t, "one\n", readNote(t, root, a.Rel+"/_source.md").Body, "an earlier import is never touched")
 }
 
@@ -181,7 +181,7 @@ func TestFinishWritesTheFiles(t *testing.T) {
 	res, err := f.Finish(sample)
 	require.NoError(t, err)
 
-	assert.Equal(t, "inbox/IMPORT_2026-11-03_Pricing review", res.Rel, "renamed to the agent's topic")
+	assert.Equal(t, "inbox/IMPORT_2026-11-03 Pricing review", res.Rel, "renamed to the agent's topic")
 	assert.Equal(t, []string{"Renewal rules.md", "Tier pricing.md", "_actions.md", "_source.md"}, names(t, root, res.Rel))
 	assert.Equal(t, []string{"Tier pricing.md", "Renewal rules.md", "_actions.md"}, res.Files, "in the order written, without _source.md")
 
@@ -322,18 +322,18 @@ func TestFinishWithoutATopicKeepsTheSourceName(t *testing.T) {
 	d.Topic = ""
 	res, err := f.Finish(d)
 	require.NoError(t, err)
-	assert.Equal(t, "inbox/IMPORT_2026-11-03_Standup", res.Rel)
+	assert.Equal(t, "inbox/IMPORT_2026-11-03 Standup", res.Rel)
 }
 
 func TestFinishTopicNameTakenGetsANumber(t *testing.T) {
 	root, s := newStore(t)
-	require.NoError(t, os.MkdirAll(filepath.Join(root, "inbox", "IMPORT_2026-11-03_Pricing review"), 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Join(root, "inbox", "IMPORT_2026-11-03 Pricing review"), 0o755))
 	f, err := Begin(s, day, importKind, fileSource("Standup", "text"))
 	require.NoError(t, err)
 	res, err := f.Finish(sample)
 	require.NoError(t, err)
-	assert.Equal(t, "inbox/IMPORT_2026-11-03_Pricing review 2", res.Rel)
-	assert.DirExists(t, filepath.Join(root, "inbox", "IMPORT_2026-11-03_Pricing review"), "the existing folder is untouched")
+	assert.Equal(t, "inbox/IMPORT_2026-11-03 Pricing review 2", res.Rel)
+	assert.DirExists(t, filepath.Join(root, "inbox", "IMPORT_2026-11-03 Pricing review"), "the existing folder is untouched")
 }
 
 func TestFinishTopicIsCleanedAgain(t *testing.T) {
@@ -342,7 +342,7 @@ func TestFinishTopicIsCleanedAgain(t *testing.T) {
 	d.Topic = "../../escape: now"
 	res, err := f.Finish(d)
 	require.NoError(t, err)
-	assert.Equal(t, "inbox/IMPORT_2026-11-03_escape now", res.Rel, "a hand-made digest cannot leave the folder")
+	assert.Equal(t, "inbox/IMPORT_2026-11-03 escape now", res.Rel, "a hand-made digest cannot leave the folder")
 }
 
 func TestFinishNeverWritesOutsideTheFolder(t *testing.T) {
@@ -415,7 +415,7 @@ func TestFinishIsOneUndoEntry(t *testing.T) {
 
 	require.NoError(t, res.Action.Undo())
 	assert.NoDirExists(t, filepath.Join(root, res.Rel))
-	assert.NoDirExists(t, filepath.Join(root, "inbox", "IMPORT_2026-11-03_Standup"), "not even the first name is left")
+	assert.NoDirExists(t, filepath.Join(root, "inbox", "IMPORT_2026-11-03 Standup"), "not even the first name is left")
 	assert.NoDirExists(t, filepath.Join(root, "inbox"), "the import made the inbox, so undo removes it: as it was before")
 
 	require.NoError(t, res.Action.Redo())
