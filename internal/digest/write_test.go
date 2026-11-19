@@ -242,40 +242,40 @@ func TestFinishNoteNamedFactsDoesNotCollide(t *testing.T) {
 	assert.Equal(t, "A fact", strings.TrimSpace(strings.TrimPrefix(readNote(t, root, res.Rel+"/_facts.md").Body, "- ")))
 }
 
-func TestFinishWritesTakeawaysInSections(t *testing.T) {
+func TestFinishWritesConclusionsApart(t *testing.T) {
 	root, f := begun(t)
 	d := sample
-	d.Takeaways = Takeaways{KeyPoints: []string{"Renewals lock for a year"}, Decisions: []string{"Ship in March", "Drop tier 3"}}
+	d.Conclusions = []string{"Ship in March", "Drop tier 3 because nobody buys it"}
 	res, err := f.Finish(d)
 	require.NoError(t, err)
 
-	n := readNote(t, root, res.Rel+"/_takeaways.md")
+	n := readNote(t, root, res.Rel+"/_conclusions.md")
 	assert.Equal(t, "import", prop(n, "kind"))
-	assert.Equal(t, "## Key points\n\n- Renewals lock for a year\n\n## Decisions\n\n- Ship in March\n- Drop tier 3\n", n.Body, "an empty section is left out")
-	assert.Contains(t, res.Files, "_takeaways.md")
+	assert.Equal(t, "- Ship in March\n- Drop tier 3 because nobody buys it\n", n.Body)
+	assert.Contains(t, res.Files, "_conclusions.md")
 }
 
-func TestFinishWithoutTakeawaysWritesNoTakeawaysFile(t *testing.T) {
+func TestFinishWithoutConclusionsWritesNoConclusionsFile(t *testing.T) {
 	root, f := begun(t)
 	res, err := f.Finish(sample)
 	require.NoError(t, err)
-	assert.NoFileExists(t, filepath.Join(root, res.Rel, "_takeaways.md"))
-	assert.NotContains(t, res.Files, "_takeaways.md")
+	assert.NoFileExists(t, filepath.Join(root, res.Rel, "_conclusions.md"))
+	assert.NotContains(t, res.Files, "_conclusions.md")
 }
 
-func TestFinishTakeawaysAloneIsNotEmpty(t *testing.T) {
+func TestFinishConclusionsAloneIsNotEmpty(t *testing.T) {
 	_, f := begun(t)
-	res, err := f.Finish(Digest{Takeaways: Takeaways{Conclusions: []string{"It works"}}})
+	res, err := f.Finish(Digest{Conclusions: []string{"It works"}})
 	require.NoError(t, err)
-	assert.Equal(t, []string{"_takeaways.md"}, res.Files)
+	assert.Equal(t, []string{"_conclusions.md"}, res.Files)
 }
 
-func TestFinishNoteNamedTakeawaysDoesNotCollide(t *testing.T) {
+func TestFinishNoteNamedConclusionsDoesNotCollide(t *testing.T) {
 	root, f := begun(t)
-	d := Digest{Notes: []Note{{Title: "Takeaways", Body: "x"}}, Takeaways: Takeaways{Decisions: []string{"A decision"}}}
+	d := Digest{Notes: []Note{{Title: "Conclusions", Body: "x"}}, Conclusions: []string{"A decision"}}
 	res, err := f.Finish(d)
 	require.NoError(t, err)
-	assert.Contains(t, readNote(t, root, res.Rel+"/_takeaways.md").Body, "- A decision")
+	assert.Equal(t, "A decision", strings.TrimSpace(strings.TrimPrefix(readNote(t, root, res.Rel+"/_conclusions.md").Body, "- ")))
 }
 
 func TestFinishWithoutActionsWritesNoActionsFile(t *testing.T) {

@@ -158,16 +158,13 @@ func (m model) runImport(label string, rerun bool, run func(context.Context, dig
 
 // newDigester builds the agent from the config: the main prompt for each
 // pass over the source and the merge prompt to combine the parts of a large
-// one. Missing prompt files are written with their defaults first.
+// one. A prompt is the one built into para unless the config names a file.
 func newDigester(cfg config.Digest, sources []string) (digest.Digester, error) {
-	if err := digest.EnsurePrompts(cfg.Prompt, cfg.MergePrompt); err != nil {
-		return nil, err
-	}
-	prompt, err := digest.ReadPrompt(cfg.Prompt)
+	prompt, err := digest.ResolvePrompt(cfg.Prompt, digest.DefaultPrompt)
 	if err != nil {
 		return nil, fmt.Errorf("the import prompt: %w", err)
 	}
-	mergePrompt, err := digest.ReadPrompt(cfg.MergePrompt)
+	mergePrompt, err := digest.ResolvePrompt(cfg.MergePrompt, digest.DefaultMergePrompt)
 	if err != nil {
 		return nil, fmt.Errorf("the merge prompt: %w", err)
 	}

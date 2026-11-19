@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -21,8 +20,9 @@ var (
 	ErrPromptTooLarge = errors.New("the prompt file is too large")
 )
 
-// DefaultPrompt and DefaultMergePrompt are written to the user's config
-// directory on first use. The user owns the files afterwards.
+// DefaultPrompt and DefaultMergePrompt are the prompts built into para. They
+// are used unless the config names a file, so they move with the program and
+// cannot drift from the code that reads the agent's answer.
 var (
 	//go:embed prompts/import-prompt.md
 	DefaultPrompt string
@@ -30,33 +30,14 @@ var (
 	DefaultMergePrompt string
 )
 
-// EnsurePrompts writes the default main prompt to prompt and the default
-// merge prompt to merge, each only when nothing exists at that path. It
-// creates missing directories and never overwrites or follows an existing
-// file or link, so the user's edits are safe.
-func EnsurePrompts(prompt, merge string) error {
-	if err := ensureFile(prompt, DefaultPrompt); err != nil {
-		return err
+// ResolvePrompt returns def when path is empty, and otherwise the whole file
+// at path, as ReadPrompt does. A configured file that cannot be read is an
+// error; it never falls back to def.
+func ResolvePrompt(path, def string) (string, error) {
+	if path == "" {
+		return def, nil
 	}
-	return ensureFile(merge, DefaultMergePrompt)
-}
-
-func ensureFile(path, text string) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return fmt.Errorf("create the prompt directory: %w", err)
-	}
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
-	if errors.Is(err, os.ErrExist) {
-		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("write the default prompt: %w", err)
-	}
-	if _, err := f.WriteString(text); err != nil {
-		_ = f.Close()
-		return fmt.Errorf("write the default prompt: %w", err)
-	}
-	return f.Close()
+	return ReadPrompt(path)
 }
 
 // ReadPrompt reads a prompt file whole. It returns ErrEmptyPrompt for a file

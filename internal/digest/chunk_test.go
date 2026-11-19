@@ -207,8 +207,7 @@ func TestChunkedMergeFailureKeepsTheParts(t *testing.T) {
 	text, _ := threeParts()
 	partA, partB := part("", "A", "Call Sam"), part("Pricing", "B", "Send sheet", "Call Sam")
 	partA.Facts, partB.Facts = []string{"Fact A"}, []string{"Fact B"}
-	partA.Takeaways = Takeaways{KeyPoints: []string{"Point A"}, Decisions: []string{"Decide A"}}
-	partB.Takeaways = Takeaways{KeyPoints: []string{"Point B"}, Conclusions: []string{"Conclude B"}}
+	partA.Conclusions, partB.Conclusions = []string{"Conclude A"}, []string{"Conclude B"}
 	p := &scripted{answers: []Digest{
 		partA,
 		partB,
@@ -226,7 +225,7 @@ func TestChunkedMergeFailureKeepsTheParts(t *testing.T) {
 	assert.Equal(t, []string{"A", "B", "C", "D"}, titles, "every note of every part, in order")
 	assert.Equal(t, []string{"Call Sam", "Send sheet", "Call Sam"}, d.Actions)
 	assert.Equal(t, []string{"Fact A", "Fact B"}, d.Facts)
-	assert.Equal(t, Takeaways{KeyPoints: []string{"Point A", "Point B"}, Conclusions: []string{"Conclude B"}, Decisions: []string{"Decide A"}}, d.Takeaways)
+	assert.Equal(t, []string{"Conclude A", "Conclude B"}, d.Conclusions)
 	assert.Equal(t, "Pricing", d.Topic, "the first topic there is")
 	assert.Equal(t, "meeting", d.Source, "the first source there is")
 }
@@ -273,7 +272,7 @@ func TestChunkedDefaultLimit(t *testing.T) {
 
 func TestMarshalParts(t *testing.T) {
 	data, err := MarshalParts([]Digest{
-		{Topic: "One", Source: "meeting", Notes: []Note{{Title: "A", Body: "a", Tags: []string{"x"}}}, Actions: []string{"Call"}, Facts: []string{"Fact"}, Takeaways: Takeaways{Decisions: []string{"Go"}}},
+		{Topic: "One", Source: "meeting", Notes: []Note{{Title: "A", Body: "a", Tags: []string{"x"}}}, Actions: []string{"Call"}, Facts: []string{"Fact"}, Conclusions: []string{"Go"}},
 		{Topic: "Two", Source: "slack"},
 	})
 	require.NoError(t, err)
@@ -284,14 +283,14 @@ func TestMarshalParts(t *testing.T) {
 	assert.Equal(t, "meeting", got[0]["source"])
 	assert.Equal(t, []any{"Call"}, got[0]["actions"])
 	assert.Equal(t, []any{"Fact"}, got[0]["facts"])
-	assert.Equal(t, map[string]any{"key_points": []any{}, "conclusions": []any{}, "decisions": []any{"Go"}}, got[0]["takeaways"])
+	assert.Equal(t, []any{"Go"}, got[0]["conclusions"])
 	note := got[0]["notes"].([]any)[0].(map[string]any)
 	assert.Equal(t, "A", note["title"])
 	assert.Equal(t, []any{"x"}, note["tags"])
 	assert.Equal(t, []any{}, got[1]["notes"], "empty lists are lists, not null")
 	assert.Equal(t, []any{}, got[1]["actions"])
 	assert.Equal(t, []any{}, got[1]["facts"])
-	assert.Equal(t, map[string]any{"key_points": []any{}, "conclusions": []any{}, "decisions": []any{}}, got[1]["takeaways"])
+	assert.Equal(t, []any{}, got[1]["conclusions"])
 }
 
 func TestCLIMerge(t *testing.T) {

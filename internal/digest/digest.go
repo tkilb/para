@@ -28,17 +28,17 @@ const (
 	MaxFacts = 200
 	// MaxFactRunes is the longest fact kept.
 	MaxFactRunes = 500
-	// MaxTakeaways is how many items are kept in each takeaways section.
-	MaxTakeaways = 100
-	// MaxTakeawayRunes is the longest takeaway item kept.
-	MaxTakeawayRunes = 500
+	// MaxConclusions is how many conclusions are kept.
+	MaxConclusions = 100
+	// MaxConclusionRunes is the longest conclusion kept.
+	MaxConclusionRunes = 500
 )
 
 var (
 	// ErrBadJSON reports an answer that is not one JSON object of the expected
 	// shape. It carries no part of the answer.
 	ErrBadJSON = errors.New("the agent did not return the expected JSON")
-	// ErrEmpty reports an answer with no usable notes, action items, facts or takeaways.
+	// ErrEmpty reports an answer with no usable notes, action items, facts or conclusions.
 	ErrEmpty = errors.New("the agent returned nothing usable")
 	// ErrTooLarge reports an answer over MaxInputBytes.
 	ErrTooLarge = errors.New("the agent's answer is too large")
@@ -49,19 +49,6 @@ type Note struct {
 	Title string
 	Body  string
 	Tags  []string
-}
-
-// Takeaways are the points a reader should leave with. They may repeat what
-// the notes, actions or facts say.
-type Takeaways struct {
-	KeyPoints   []string
-	Conclusions []string
-	Decisions   []string
-}
-
-// Empty reports whether no section has an item.
-func (t Takeaways) Empty() bool {
-	return len(t.KeyPoints) == 0 && len(t.Conclusions) == 0 && len(t.Decisions) == 0
 }
 
 // Digest is a checked agent answer: safe to write once the folder, kind and
@@ -77,8 +64,9 @@ type Digest struct {
 	// Facts are standalone statements the source gives, kept apart from the
 	// notes so they can be picked into a notebook one at a time.
 	Facts []string
-	// Takeaways are the key points, conclusions and decisions of the source.
-	Takeaways Takeaways
+	// Conclusions are what the source settled, decided or found out, with the
+	// reason or owner when it gives one. They may repeat the notes and facts.
+	Conclusions []string
 	// Unmerged is set when a large source was split and the merge failed, so
 	// the notes of the parts are kept side by side. The caller warns.
 	Unmerged bool

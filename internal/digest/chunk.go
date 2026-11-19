@@ -164,27 +164,18 @@ func concat(parts []Digest) Digest {
 		out.Notes = append(out.Notes, p.Notes...)
 		out.Actions = append(out.Actions, p.Actions...)
 		out.Facts = append(out.Facts, p.Facts...)
-		out.Takeaways.KeyPoints = append(out.Takeaways.KeyPoints, p.Takeaways.KeyPoints...)
-		out.Takeaways.Conclusions = append(out.Takeaways.Conclusions, p.Takeaways.Conclusions...)
-		out.Takeaways.Decisions = append(out.Takeaways.Decisions, p.Takeaways.Decisions...)
+		out.Conclusions = append(out.Conclusions, p.Conclusions...)
 	}
 	return out
 }
 
 type partJSON struct {
-	Topic   string     `json:"topic"`
-	Source  string     `json:"source"`
-	Notes   []noteJSON `json:"notes"`
-	Actions []string   `json:"actions"`
-	Facts   []string   `json:"facts"`
-
-	Takeaways takeawaysJSON `json:"takeaways"`
-}
-
-type takeawaysJSON struct {
-	KeyPoints   []string `json:"key_points"`
-	Conclusions []string `json:"conclusions"`
-	Decisions   []string `json:"decisions"`
+	Topic       string     `json:"topic"`
+	Source      string     `json:"source"`
+	Notes       []noteJSON `json:"notes"`
+	Actions     []string   `json:"actions"`
+	Facts       []string   `json:"facts"`
+	Conclusions []string   `json:"conclusions"`
 }
 
 type noteJSON struct {
@@ -199,12 +190,7 @@ type noteJSON struct {
 func MarshalParts(parts []Digest) ([]byte, error) {
 	out := make([]partJSON, 0, len(parts))
 	for _, p := range parts {
-		pj := partJSON{Topic: p.Topic, Source: p.Source, Notes: []noteJSON{}, Actions: append([]string{}, p.Actions...), Facts: append([]string{}, p.Facts...),
-			Takeaways: takeawaysJSON{
-				KeyPoints:   append([]string{}, p.Takeaways.KeyPoints...),
-				Conclusions: append([]string{}, p.Takeaways.Conclusions...),
-				Decisions:   append([]string{}, p.Takeaways.Decisions...),
-			}}
+		pj := partJSON{Topic: p.Topic, Source: p.Source, Notes: []noteJSON{}, Actions: append([]string{}, p.Actions...), Facts: append([]string{}, p.Facts...), Conclusions: append([]string{}, p.Conclusions...)}
 		for _, n := range p.Notes {
 			pj.Notes = append(pj.Notes, noteJSON{Title: n.Title, Body: n.Body, Tags: append([]string{}, n.Tags...)})
 		}

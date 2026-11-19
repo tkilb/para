@@ -3,7 +3,6 @@ package config
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
 	"strings"
 	"time"
 	"unicode"
@@ -19,9 +18,6 @@ const (
 	// maxDigestTimeout caps digest.timeout so a hung agent cannot hold an
 	// import for long.
 	maxDigestTimeout = time.Hour
-
-	promptFile      = "import-prompt.md"
-	mergePromptFile = "import-merge-prompt.md"
 )
 
 // Digest configures the agentic import: the command that runs the agent, the
@@ -35,8 +31,9 @@ type Digest struct {
 	// Model is the model name or alias passed to the command.
 	Model   string
 	Timeout time.Duration
-	// Prompt and MergePrompt are the files holding the whole main and merge
-	// prompts. They are written with defaults on first use when missing.
+	// Prompt and MergePrompt are optional files holding the whole main and
+	// merge prompts. Empty means the prompts built into para, which cannot
+	// drift from the code; a file is a deliberate override.
 	Prompt      string
 	MergePrompt string
 }
@@ -44,15 +41,12 @@ type Digest struct {
 // parseDigest reads the digest section: a mapping with the keys enabled,
 // command, model, timeout, prompt and merge_prompt. Any other key is an
 // error that names it. An absent or empty section gives the defaults, with
-// import off. home locates the default prompt files and expands "~".
+// import off and the built-in prompts. home expands "~".
 func parseDigest(n *yaml.Node, home string) (Digest, error) {
-	dir := filepath.Join(home, ".config", dirName)
 	d := Digest{
-		Command:     defaultDigestCommand,
-		Model:       defaultDigestModel,
-		Timeout:     defaultDigestTimeout,
-		Prompt:      filepath.Join(dir, promptFile),
-		MergePrompt: filepath.Join(dir, mergePromptFile),
+		Command: defaultDigestCommand,
+		Model:   defaultDigestModel,
+		Timeout: defaultDigestTimeout,
 	}
 	if n.Kind == 0 || (n.Kind == yaml.ScalarNode && n.Tag == "!!null") {
 		return d, nil

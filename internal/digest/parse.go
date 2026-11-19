@@ -15,17 +15,12 @@ import (
 const fallbackSource = "adhoc"
 
 type rawDigest struct {
-	Topic   string    `json:"topic"`
-	Source  string    `json:"source"`
-	Notes   []rawNote `json:"notes"`
-	Actions []string  `json:"actions"`
-	Facts   []string  `json:"facts"`
-
-	Takeaways struct {
-		KeyPoints   []string `json:"key_points"`
-		Conclusions []string `json:"conclusions"`
-		Decisions   []string `json:"decisions"`
-	} `json:"takeaways"`
+	Topic       string    `json:"topic"`
+	Source      string    `json:"source"`
+	Notes       []rawNote `json:"notes"`
+	Actions     []string  `json:"actions"`
+	Facts       []string  `json:"facts"`
+	Conclusions []string  `json:"conclusions"`
 }
 
 type rawNote struct {
@@ -53,25 +48,21 @@ func Parse(data []byte, sources []string) (Digest, error) {
 	}
 
 	d := Digest{
-		Topic:   cleanName(raw.Topic),
-		Source:  matchSource(raw.Source, sources),
-		Notes:   cleanNotes(raw.Notes),
-		Actions: cleanActions(raw.Actions),
-		Facts:   cleanFacts(raw.Facts),
-		Takeaways: cleanTakeaways(Takeaways{
-			KeyPoints:   raw.Takeaways.KeyPoints,
-			Conclusions: raw.Takeaways.Conclusions,
-			Decisions:   raw.Takeaways.Decisions,
-		}),
+		Topic:       cleanName(raw.Topic),
+		Source:      matchSource(raw.Source, sources),
+		Notes:       cleanNotes(raw.Notes),
+		Actions:     cleanActions(raw.Actions),
+		Facts:       cleanFacts(raw.Facts),
+		Conclusions: cleanConclusions(raw.Conclusions),
 	}
-	if len(d.Notes) == 0 && len(d.Actions) == 0 && len(d.Facts) == 0 && d.Takeaways.Empty() {
+	if len(d.Notes) == 0 && len(d.Actions) == 0 && len(d.Facts) == 0 && len(d.Conclusions) == 0 {
 		return Digest{}, ErrEmpty
 	}
 	return d, nil
 }
 
 // cleanName makes text a safe file name, with no leading underscore: files
-// the writer owns, _source.md, _actions.md, _facts.md and _takeaways.md, start with one.
+// the writer owns, _source.md, _actions.md, _facts.md and _conclusions.md, start with one.
 func cleanName(text string) string {
 	name := store.CleanTitle(textsafe.SingleLine(text))
 	return strings.TrimLeft(name, "_ ")
@@ -148,12 +139,8 @@ func cleanFacts(raw []string) []string {
 	return cleanLines(raw, MaxFacts, MaxFactRunes)
 }
 
-func cleanTakeaways(t Takeaways) Takeaways {
-	return Takeaways{
-		KeyPoints:   cleanLines(t.KeyPoints, MaxTakeaways, MaxTakeawayRunes),
-		Conclusions: cleanLines(t.Conclusions, MaxTakeaways, MaxTakeawayRunes),
-		Decisions:   cleanLines(t.Decisions, MaxTakeaways, MaxTakeawayRunes),
-	}
+func cleanConclusions(raw []string) []string {
+	return cleanLines(raw, MaxConclusions, MaxConclusionRunes)
 }
 
 // cleanLines keeps up to max non-empty single-line items, each cut to runes.

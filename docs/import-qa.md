@@ -33,7 +33,7 @@ agent and never call a model.
 | 7 | Press `Enter` on `standup.txt` | The box closes. The status bar shows `Importing…` and the app stays usable (move around, open notes). |
 | 8 | While it runs, press `I` again | A notice says an import is already running. |
 | 9 | When it finishes | Status bar: `✓ Imported: IMPORT_YYYY-MM-DD_<topic> (N files)`, gone after 5 seconds. The cursor has not moved. |
-| 10 | Open the new folder in the Inbox | `_source.md` first (your text, unchanged), concept notes, `_actions.md` only if there were actions, `_facts.md` only if there were facts, and `_takeaways.md` only if there were key points, conclusions or decisions (sections for the empty ones are left out). Each file has `kind: import`, a source, the date and tags. Small talk is gone. |
+| 10 | Open the new folder in the Inbox | `_source.md` first (your text, unchanged), concept notes, `_actions.md` only if there were actions, `_facts.md` only if there were facts, and `_conclusions.md` only if something was concluded or decided. Each file has `kind: import`, a source, the date and tags. Small talk is gone. |
 | 11 | Press `u` | The whole folder disappears in one undo. `ctrl+r` brings it back. |
 | 12 | Put the cursor on the `IMPORT_` folder (or any file inside it) and press `I` | No box. Status: `Re-running IMPORT_…`, then `✓ Re-ran: …`. Old files are replaced; the folder keeps its name. |
 | 13 | Press `u` after a re-run | The previous files come back exactly as they were. |
@@ -50,5 +50,6 @@ agent and never call a model.
 - Quitting during a run kills the agent. The `_source.md` is already saved, so
   press `I` on the folder next time.
 - Real model output is the thing to judge by eye: whether notes cluster well
-  and small talk is dropped. Tune the prompt files in the config directory
-  (`import-prompt.md`, `import-merge-prompt.md`).
+  and small talk is dropped. Tune the built-in prompts in
+  `internal/digest/prompts/`, or point `digest.prompt` and `digest.merge_prompt`
+  at files to try a variant without a rebuild.

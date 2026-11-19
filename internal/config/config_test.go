@@ -87,11 +87,7 @@ func TestParse(t *testing.T) {
 			}
 			tt.want.TemplatesDir = filepath.Join(home, ".config", "para", "templates")
 			if tt.want.Digest == (Digest{}) {
-				dir := filepath.Join(home, ".config", "para")
-				tt.want.Digest = Digest{
-					Command: "claude", Model: "sonnet", Timeout: 5 * time.Minute,
-					Prompt: filepath.Join(dir, "import-prompt.md"), MergePrompt: filepath.Join(dir, "import-merge-prompt.md"),
-				}
+				tt.want.Digest = Digest{Command: "claude", Model: "sonnet", Timeout: 5 * time.Minute}
 			}
 			assert.Equal(t, tt.want, got)
 		})

@@ -63,31 +63,26 @@ func TestParseFacts(t *testing.T) {
 	assert.Len(t, d.Facts, MaxFacts)
 }
 
-func TestParseTakeaways(t *testing.T) {
-	d, err := parse(t, obj{"takeaways": obj{
-		"key_points":  []string{"  Renewals lock\nfor a year ", "", strings.Repeat("y", MaxTakeawayRunes+50)},
-		"conclusions": []string{"Tier\x1b[0m pro wins"},
-		"decisions":   []string{"Ship in March"},
-	}})
-	require.NoError(t, err, "takeaways alone are not empty")
+func TestParseConclusions(t *testing.T) {
+	d, err := parse(t, obj{"conclusions": []string{"  Renewals lock\nfor a year ", "", strings.Repeat("y", MaxConclusionRunes+50), "Tier\x1b[0m pro wins"}})
+	require.NoError(t, err, "conclusions alone are not empty")
 	assert.Empty(t, d.Notes)
-	require.Len(t, d.Takeaways.KeyPoints, 2)
-	assert.Equal(t, "Renewals lock for a year", d.Takeaways.KeyPoints[0])
-	assert.Len(t, []rune(d.Takeaways.KeyPoints[1]), MaxTakeawayRunes)
-	assert.Equal(t, []string{"Tier[0m pro wins"}, d.Takeaways.Conclusions)
-	assert.Equal(t, []string{"Ship in March"}, d.Takeaways.Decisions)
+	require.Len(t, d.Conclusions, 3)
+	assert.Equal(t, "Renewals lock for a year", d.Conclusions[0])
+	assert.Len(t, []rune(d.Conclusions[1]), MaxConclusionRunes)
+	assert.Equal(t, "Tier[0m pro wins", d.Conclusions[2])
 
 	var many []string
-	for i := range MaxTakeaways + 5 {
+	for i := range MaxConclusions + 5 {
 		many = append(many, strings.Repeat("a", i+1))
 	}
-	d, err = parse(t, obj{"takeaways": obj{"decisions": many}})
+	d, err = parse(t, obj{"conclusions": many})
 	require.NoError(t, err)
-	assert.Len(t, d.Takeaways.Decisions, MaxTakeaways)
+	assert.Len(t, d.Conclusions, MaxConclusions)
 }
 
-func TestParseEmptyTakeawaysIsEmpty(t *testing.T) {
-	_, err := parse(t, obj{"takeaways": obj{"key_points": []string{" "}}})
+func TestParseBlankConclusionsIsEmpty(t *testing.T) {
+	_, err := parse(t, obj{"conclusions": []string{" "}})
 	assert.ErrorIs(t, err, ErrEmpty)
 }
 

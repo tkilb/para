@@ -12,14 +12,12 @@ import (
 func TestParseDigestDefaults(t *testing.T) {
 	const nb = "notebooks:\n  - /tmp\n"
 	home := t.TempDir()
-	dir := filepath.Join(home, ".config", "para")
 	want := Digest{
-		Enabled:     false,
-		Command:     "claude",
-		Model:       "sonnet",
-		Timeout:     5 * time.Minute,
-		Prompt:      filepath.Join(dir, "import-prompt.md"),
-		MergePrompt: filepath.Join(dir, "import-merge-prompt.md"),
+		Enabled: false,
+		Command: "claude",
+		Model:   "sonnet",
+		Timeout: 5 * time.Minute,
+		// Prompt and MergePrompt stay empty: the built-in prompts are used.
 	}
 	for _, in := range []string{nb, nb + "digest:\n", nb + "digest: {}\n"} {
 		cfg, err := Parse([]byte(in), home)

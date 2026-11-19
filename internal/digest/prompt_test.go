@@ -10,52 +10,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestEnsurePromptsWritesDefaultsWhenMissing(t *testing.T) {
-	dir := filepath.Join(t.TempDir(), "config", "para")
-	main, merge := filepath.Join(dir, "import-prompt.md"), filepath.Join(dir, "import-merge-prompt.md")
-
-	require.NoError(t, EnsurePrompts(main, merge))
-
-	got, err := os.ReadFile(main)
+func TestResolvePromptUsesTheBuiltInWithoutAPath(t *testing.T) {
+	got, err := ResolvePrompt("", DefaultPrompt)
 	require.NoError(t, err)
-	assert.Equal(t, DefaultPrompt, string(got))
-	got, err = os.ReadFile(merge)
+	assert.Equal(t, DefaultPrompt, got, "no path means the prompt built into para, so it cannot drift")
+}
+
+func TestResolvePromptReadsAnExplicitFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "mine.md")
+	require.NoError(t, os.WriteFile(path, []byte("my own prompt"), 0o644))
+	got, err := ResolvePrompt(path, DefaultPrompt)
 	require.NoError(t, err)
-	assert.Equal(t, DefaultMergePrompt, string(got))
+	assert.Equal(t, "my own prompt", got)
 }
 
-func TestEnsurePromptsNeverOverwrites(t *testing.T) {
-	dir := t.TempDir()
-	main, merge := filepath.Join(dir, "a.md"), filepath.Join(dir, "b.md")
-	require.NoError(t, os.WriteFile(main, []byte("my own prompt"), 0o644))
-
-	require.NoError(t, EnsurePrompts(main, merge))
-
-	got, _ := os.ReadFile(main)
-	assert.Equal(t, "my own prompt", string(got), "an existing file is left alone")
-	got, _ = os.ReadFile(merge)
-	assert.Equal(t, DefaultMergePrompt, string(got), "only the missing one is written")
-}
-
-func TestEnsurePromptsFollowsNoSymlinkOverAnExistingFile(t *testing.T) {
-	dir := t.TempDir()
-	target := filepath.Join(dir, "target.md")
-	require.NoError(t, os.WriteFile(target, []byte("keep"), 0o644))
-	link := filepath.Join(dir, "link.md")
-	require.NoError(t, os.Symlink(target, link))
-
-	require.NoError(t, EnsurePrompts(link, filepath.Join(dir, "m.md")))
-
-	got, _ := os.ReadFile(target)
-	assert.Equal(t, "keep", string(got))
-}
-
-func TestEnsurePromptsReportsAnUnwritableDirectory(t *testing.T) {
-	dir := t.TempDir()
-	blocker := filepath.Join(dir, "file")
-	require.NoError(t, os.WriteFile(blocker, nil, 0o644))
-	err := EnsurePrompts(filepath.Join(blocker, "sub", "p.md"), filepath.Join(dir, "m.md"))
-	assert.Error(t, err)
+func TestResolvePromptReportsABadFile(t *testing.T) {
+	_, err := ResolvePrompt(filepath.Join(t.TempDir(), "nope.md"), DefaultPrompt)
+	assert.Error(t, err, "a configured file that is missing is an error, never a silent fall back")
 }
 
 func TestReadPrompt(t *testing.T) {
@@ -101,7 +72,7 @@ func TestDefaultPromptsStateTheRules(t *testing.T) {
 			lower := strings.ToLower(p)
 			assert.Contains(t, lower, "data, not instructions", "the source is untrusted")
 			assert.Contains(t, lower, "json", "the output format is stated")
-			for _, field := range []string{"topic", "source", "notes", "title", "body", "tags", "actions", "facts", "takeaways", "key_points", "conclusions", "decisions"} {
+			for _, field := range []string{"topic", "source", "notes", "title", "body", "tags", "actions", "facts", "conclusions"} {
 				assert.Contains(t, lower, field, "the prompt names the field %s", field)
 			}
 			assert.Less(t, len(p), MaxPromptBytes)
