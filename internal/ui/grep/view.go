@@ -102,7 +102,7 @@ func (m Model) suggestionBox(width, height int) string {
 		}
 		lines = append(lines, row)
 	}
-	footer := panel.Footer{Left: "↑/↓ choose  tab complete", Tint: true}
+	footer := panel.Footer{Left: "↑/↓ choose  enter fill in", Tint: true}
 	return panel.Frame("Folders", strings.Join(lines, "\n"), width, len(lines), true, footer)
 }
 

@@ -155,28 +155,6 @@ func (m Model) dirHints() []string {
 	return findtext.ChildDirs(m.rels, typed)
 }
 
-// completeDir extends the dir field to the folders that match: to the one
-// folder with a slash after it, or to the start the folders share. It reports
-// false when there is nothing to add, so tab moves on.
-func (m Model) completeDir() (Model, bool) {
-	names := m.dirHints()
-	if len(names) == 0 {
-		return m, false
-	}
-	typed := strings.TrimLeft(strings.TrimSpace(m.dirField.Value()), "/")
-	parent := typed[:strings.LastIndex(typed, "/")+1]
-	next := commonPrefix(names)
-	if len(names) == 1 {
-		next += "/"
-	}
-	if parent+next == typed {
-		return m, false
-	}
-	m.dirField.SetValue(parent + next)
-	m.hintSel = -1
-	return m.rescope(), true
-}
-
 // acceptHint puts the chosen suggestion in the dir field, with a slash after
 // it, ready to list the folders inside it.
 func (m Model) acceptHint() Model {
@@ -207,20 +185,6 @@ func (m Model) moveHint(delta int) Model {
 // suggesting reports whether the dir suggestions are open.
 func (m Model) suggesting() bool {
 	return m.focus == focusDir && len(m.dirHints()) > 0
-}
-
-// commonPrefix is the longest start shared by names, ignoring case, in the
-// case of the first.
-func commonPrefix(names []string) string {
-	n := len(names[0])
-	for _, s := range names[1:] {
-		i := 0
-		for i < n && i < len(s) && strings.EqualFold(names[0][i:i+1], s[i:i+1]) {
-			i++
-		}
-		n = i
-	}
-	return names[0][:n]
 }
 
 // scope returns the lines inside the chosen space and path filter. The path
@@ -303,8 +267,7 @@ func (m Model) Chosen() (search.Hit, bool) {
 
 // Update handles a message: the arrows move through the lines, page up and
 // down move by a page, ctrl+d and ctrl+u scroll the preview, tab and
-// shift+tab move between the query, space, kind and dir fields (tab in dir
-// completes the folder first; up and down choose from its suggestions), ctrl+s shows or
+// shift+tab move between the query, space, kind and dir fields (up and down in dir choose from its folder suggestions and enter fills one in), ctrl+s shows or
 // hides the lines of _source.md files, enter chooses,
 // esc cancels, and anything else edits the field in focus (left, right, h, l
 // and space change the space or kind).
@@ -316,7 +279,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd, Outcome) {
 				return m.moveHint(-1), nil, Pending
 			case "down", "ctrl+n":
 				return m.moveHint(1), nil, Pending
-			case "enter", "tab":
+			case "enter":
 				if m.hintSel >= 0 {
 					return m.acceptHint(), nil, Pending
 				}
@@ -346,11 +309,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd, Outcome) {
 			m.showSource = !m.showSource
 			return m.rescope(), nil, Pending
 		case "tab":
-			if m.focus == focusDir {
-				if done, ok := m.completeDir(); ok {
-					return done, nil, Pending
-				}
-			}
 			m, cmd := m.setFocus((m.focus + 1) % focusCount)
 			return m, cmd, Pending
 		case "shift+tab":

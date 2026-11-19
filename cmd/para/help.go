@@ -15,7 +15,7 @@ var helpGlobalBindings = []statusbar.Binding{
 	{Key: "s", Label: "open the scratch pad (_scratch.md in the notebook root) in $EDITOR"},
 	{Key: "M", Label: "search the marked notes by name, grouped by folder (enter jumps to the note)"},
 	{Key: "ctrl+f", Label: "find a note by name or path anywhere in the notebook (best file name matches first)"},
-	{Key: "ctrl+/ or F", Label: "search text in the notes, grep style, filtered by Space, Kind and Dir (tab switches fields; in Dir, a dropdown of folders: ↑/↓ choose, tab completes; ctrl+s shows or hides _source.md transcripts; opens the note at the line)"},
+	{Key: "ctrl+/ or F", Label: "search text in the notes, grep style, filtered by Space, Kind and Dir (tab switches fields; in Dir, a dropdown of folders: ↑/↓ choose, enter fills in; ctrl+s shows or hides _source.md transcripts; opens the note at the line)"},
 	{Key: "B", Label: "choose the notebook to open (your place in each is remembered)"},
 	{Key: "A", Label: "Add Note: add a note in the folder PARA shows (tab, ctrl+s saves)"},
 	{Key: "I", Label: "import the clipboard, a web page or a file with the agent; an image (clipboard or file) is saved as a PNG instead; on an IMPORT_ folder, run it again"},
