@@ -168,6 +168,13 @@ func (m Model) acceptHint() Model {
 	return m.rescope()
 }
 
+// setDir replaces the dir field and searches again.
+func (m Model) setDir(v string) Model {
+	m.dirField.SetValue(v)
+	m.hintSel = -1
+	return m.rescope()
+}
+
 // moveHint moves the choice in the dir suggestions delta places: from none to
 // the first with down, to the last with up, and back to none past either end.
 func (m Model) moveHint(delta int) Model {
@@ -267,12 +274,21 @@ func (m Model) Chosen() (search.Hit, bool) {
 
 // Update handles a message: the arrows move through the lines, page up and
 // down move by a page, ctrl+d and ctrl+u scroll the preview, tab and
-// shift+tab move between the query, space, kind and dir fields (up and down in dir choose from its folder suggestions and enter fills one in), ctrl+s shows or
+// shift+tab move between the query, space, kind and dir fields (up and down in dir choose from its folder suggestions and enter fills one in;
+// ctrl+u clears the dir and ctrl+w removes its last folder name), ctrl+s shows or
 // hides the lines of _source.md files, enter chooses,
 // esc cancels, and anything else edits the field in focus (left, right, h, l
 // and space change the space or kind).
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd, Outcome) {
 	if k, ok := msg.(tea.KeyMsg); ok {
+		if m.focus == focusDir {
+			switch k.String() {
+			case "ctrl+u":
+				return m.setDir(""), nil, Pending
+			case "ctrl+w":
+				return m.setDir(findtext.DropLastSegment(m.dirField.Value())), nil, Pending
+			}
+		}
 		if m.suggesting() {
 			switch k.String() {
 			case "up", "ctrl+p":

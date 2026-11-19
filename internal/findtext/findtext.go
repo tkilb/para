@@ -159,3 +159,11 @@ func ChildDirs(rels []string, path string) []string {
 	sort.Slice(out, func(i, j int) bool { return strings.ToLower(out[i]) < strings.ToLower(out[j]) })
 	return out
 }
+
+// DropLastSegment removes the last folder name from the slash path, and the
+// slash after it if it has one, so "a/b/c" and "a/b/" both become "a/". The
+// slash before what stays is kept, ready to type the next name.
+func DropLastSegment(path string) string {
+	path = strings.TrimRight(path, "/")
+	return path[:strings.LastIndex(path, "/")+1]
+}

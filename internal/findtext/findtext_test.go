@@ -168,3 +168,22 @@ func TestChildDirsListsTheFoldersUnderAPathPrefix(t *testing.T) {
 		})
 	}
 }
+
+func TestDropLastSegmentRemovesTheEndOfASlashPath(t *testing.T) {
+	tests := []struct{ in, want string }{
+		{"", ""},
+		{"a", ""},
+		{"a/", ""},
+		{"a/b", "a/"},
+		{"a/b/", "a/"},
+		{"a/b/c", "a/b/"},
+		{"proj/al", "proj/"},
+		{"/a/b", "/a/"},
+		{"a//", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.in, func(t *testing.T) {
+			assert.Equal(t, tt.want, DropLastSegment(tt.in))
+		})
+	}
+}
