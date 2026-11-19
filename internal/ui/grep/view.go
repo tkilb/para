@@ -33,7 +33,7 @@ const (
 	beforeHit = 3
 	noQuery   = "(type to search)"
 	noMatch   = "(no matches)"
-	hint      = "enter open  tab fields  ctrl+f filters%s  esc cancel"
+	hint      = "enter open  tab fields  ctrl+f filters  esc cancel"
 )
 
 // The popup's colors: the gruvbox-material palette of the Content panel.
@@ -193,7 +193,7 @@ func (m Model) listPane(width, height int) string {
 			lines = append(lines, listRow(m.res.Hits[i], width, i == m.cursor))
 		}
 	}
-	footer := panel.Footer{Left: m.hint(), Tint: true}
+	footer := panel.Footer{Left: hint, Tint: true}
 	if m.capped {
 		footer.Right = "first lines only"
 	} else if m.res.Truncated {
@@ -357,24 +357,6 @@ func clampSpans(spans [][2]int, width int, line string) [][2]int {
 		}
 	}
 	return out
-}
-
-// hint is the footer's key help, followed by the filters of the ctrl+f popup
-// that are not at their start: how recently notes changed, and _source.md
-// files being searched.
-func (m Model) hint() string {
-	var on []string
-	if m.since > 0 {
-		on = append(on, strings.ToLower(sinceOptions[m.since].Label))
-	}
-	if m.showSource {
-		on = append(on, "_source.md shown")
-	}
-	suffix := ""
-	if len(on) > 0 {
-		suffix = ": " + strings.Join(on, ", ")
-	}
-	return fmt.Sprintf(hint, suffix)
 }
 
 // filtersBoxWidth is the outer width of the filters popup.
