@@ -176,9 +176,11 @@ func (m Model) setFocus(f focus) (Model, tea.Cmd) {
 	return m, nil
 }
 
-// pickSpace moves the chosen space delta places, wrapping.
+// pickSpace moves the chosen space delta places, wrapping. The dir is a path
+// inside the space, so it is cleared.
 func (m Model) pickSpace(delta int) Model {
 	m.space = (m.space + delta + len(m.spaces)) % len(m.spaces)
+	m.dirField.SetValue("")
 	return m.rescope()
 }
 
