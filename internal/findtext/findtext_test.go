@@ -231,3 +231,49 @@ func TestNotesListsOneLinePerReadableNote(t *testing.T) {
 	assert.Empty(t, got[0].Text)
 	assert.Equal(t, store.KindUnset, got[1].Kind)
 }
+
+func TestAgoNamesTheTimeSinceInTheLargestUnit(t *testing.T) {
+	now := time.Date(2026, 6, 15, 12, 0, 0, 0, time.UTC)
+	tests := []struct {
+		name string
+		then time.Time
+		want string
+	}{
+		{"unknown", time.Time{}, ""},
+		{"future", now.Add(time.Hour), "now"},
+		{"seconds", now.Add(-30 * time.Second), "now"},
+		{"minutes", now.Add(-5 * time.Minute), "5m ago"},
+		{"hours", now.Add(-3 * time.Hour), "3h ago"},
+		{"days", now.Add(-26 * time.Hour), "1d ago"},
+		{"many days", now.Add(-45 * 24 * time.Hour), "45d ago"},
+		{"months", now.Add(-90 * 24 * time.Hour), "3mo ago"},
+		{"years", now.Add(-800 * 24 * time.Hour), "2y ago"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, Ago(now, tt.then))
+		})
+	}
+}
+
+func TestNewestFirstOrdersByTimeThenPath(t *testing.T) {
+	base := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
+	lines := []Line{
+		{Rel: "b.md", Mod: base},
+		{Rel: "unknown.md"},
+		{Rel: "a.md", Mod: base},
+		{Rel: "new.md", Mod: base.Add(time.Hour)},
+	}
+	got := NewestFirst(lines)
+
+	assert.Equal(t, []string{"new.md", "a.md", "b.md", "unknown.md"}, []string{got[0].Rel, got[1].Rel, got[2].Rel, got[3].Rel})
+	assert.Equal(t, "b.md", lines[0].Rel, "the input is not changed")
+}
+
+func TestFirstKeepsTheLeadingLines(t *testing.T) {
+	lines := []Line{{Rel: "a"}, {Rel: "b"}, {Rel: "c"}}
+
+	assert.Equal(t, lines[:2], First(lines, 2))
+	assert.Equal(t, lines, First(lines, 5))
+	assert.Equal(t, lines, First(lines, 0), "no limit keeps all")
+}

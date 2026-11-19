@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -21,6 +22,7 @@ import (
 
 const (
 	findFileTitle = "Find note"
+	recentTitle   = "Recent notes"
 	// valueSep splits a note's path from a line number in a picker value;
 	// a path cannot hold a NUL byte.
 	valueSep = "\x00"
@@ -46,10 +48,40 @@ func (m model) openFileFinder() (model, tea.Cmd) {
 	if len(notes) == 0 {
 		return m.notify(popup.Info, "There are no notes to find."), nil
 	}
-	item := func(rel string) picker.Item {
-		return picker.Item{Label: strings.TrimSuffix(filepath.ToSlash(rel), filepath.Ext(rel)), Name: noteName(rel), Value: rel}
-	}
+	item := func(n findtext.Line) picker.Item { return noteItem(n, "") }
 	f, cmd := notefind.New(findFileTitle, notes, item, filterbar.Options{Spaces: filterSpaces()})
+	m.notefind = &f
+	return m, cmd
+}
+
+// noteItem is the picker item for a note: its path without .md, with detail
+// shown dim at the right.
+func noteItem(n findtext.Line, detail string) picker.Item {
+	return picker.Item{
+		Label:  strings.TrimSuffix(filepath.ToSlash(n.Rel), filepath.Ext(n.Rel)),
+		Name:   noteName(n.Rel),
+		Value:  n.Rel,
+		Detail: detail,
+	}
+}
+
+// recentLimit is how many notes the recents popup lists.
+const recentLimit = 200
+
+// openRecent opens the note finder over the notes changed most recently,
+// latest first, at most recentLimit of them after the filters. What is typed
+// narrows the list by fuzzy match, ranked by how well the name matches and,
+// among equal matches, by how recently the note changed. Each row says how
+// long ago the note changed. It jumps PARA to the one chosen.
+func (m model) openRecent() (model, tea.Cmd) {
+	notes := findtext.NewestFirst(findtext.Notes(m.store, m.links.Rels()))
+	if len(notes) == 0 {
+		return m.notify(popup.Info, "There are no notes yet."), nil
+	}
+	now := time.Now()
+	item := func(n findtext.Line) picker.Item { return noteItem(n, findtext.Ago(now, n.Mod)) }
+	f, cmd := notefind.New(recentTitle, notes, item, filterbar.Options{Spaces: filterSpaces()})
+	f = f.Recent(recentLimit)
 	m.notefind = &f
 	return m, cmd
 }

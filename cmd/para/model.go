@@ -94,6 +94,7 @@ var globalBindings = []statusbar.Binding{
 	{Key: "M", Label: "marks"},
 	{Key: "B", Label: "notebook"},
 	{Key: "ctrl+f", Label: "find note"},
+	{Key: "R", Label: "recent"},
 	{Key: "ctrl+y", Label: "glossary"},
 	{Key: "tab", Label: "next panel"},
 	{Key: "+", Label: "zoom"},
@@ -572,6 +573,8 @@ func (m model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m, cmd = m.openScratch()
 	case "ctrl+f":
 		m, cmd = m.openFileFinder()
+	case "R":
+		m, cmd = m.openRecent()
 	case "ctrl+_", "F":
 		// ctrl+/ reaches the program as ctrl+_ ; F is for terminals that
 		// send nothing useful for it.

@@ -121,6 +121,11 @@ type Model struct {
 	// pane titled previewName.
 	preview     bool
 	previewName string
+	// keepOrder ranks matches of the same quality in the order of the items,
+	// not by how well their letters fit, and counts every whole-run match in
+	// the name (from the whole name to the middle of it) as one quality, so
+	// the order of the items decides among them.
+	keepOrder bool
 	// topRight is shown in the top border of the list, near its right corner.
 	topRight string
 }
@@ -157,6 +162,16 @@ func (m Model) SetFocused(on bool) (Model, tea.Cmd) {
 		return m, nil
 	}
 	return m, m.field.Focus()
+}
+
+// KeepOrder makes matches of the same quality (see rank.go) keep the order of
+// the items instead of being sorted by how well their letters fit, so a list
+// given newest first stays newest first. A word found as a whole run in the
+// name is one quality however it starts; letters scattered across the name,
+// then a match only in the folders, rank below it.
+func (m Model) KeepOrder() Model {
+	m.keepOrder = true
+	return m.refilter()
 }
 
 // WithTopRight shows text in the top border of the list, near its right
@@ -318,7 +333,11 @@ func (m Model) refilter() Model {
 			if !ok {
 				continue
 			}
-			c.quality += wm.quality
+			quality := wm.quality
+			if m.keepOrder {
+				quality = min(quality, qContains) // a hit in the name is a hit, however it starts
+			}
+			c.quality += quality
 			c.score += wm.score
 			at := make(map[int]bool, len(c.at)+len(wm.at))
 			for b := range c.at {
@@ -336,7 +355,7 @@ func (m Model) refilter() Model {
 		if cands[i].quality != cands[j].quality {
 			return cands[i].quality > cands[j].quality
 		}
-		return cands[i].score > cands[j].score
+		return !m.keepOrder && cands[i].score > cands[j].score
 	})
 	m.matches = make([]match, len(cands))
 	for i, c := range cands {

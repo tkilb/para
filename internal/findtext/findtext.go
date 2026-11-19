@@ -4,6 +4,7 @@
 package findtext
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -213,4 +214,54 @@ func ChangedSince(lines []Line, cutoff time.Time) []Line {
 		}
 	}
 	return out
+}
+
+// Ago says how long before now t was, in the largest unit that fits, such as
+// "5m ago" or "3d ago". It is "now" for under a minute (or a time in the
+// future) and empty for an unknown time.
+func Ago(now, t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	d := now.Sub(t)
+	switch {
+	case d < time.Minute:
+		return "now"
+	case d < time.Hour:
+		return fmt.Sprintf("%dm ago", int(d/time.Minute))
+	case d < 24*time.Hour:
+		return fmt.Sprintf("%dh ago", int(d/time.Hour))
+	case d < 60*24*time.Hour:
+		return fmt.Sprintf("%dd ago", int(d/(24*time.Hour)))
+	case d < 365*24*time.Hour:
+		return fmt.Sprintf("%dmo ago", int(d/(30*24*time.Hour)))
+	}
+	return fmt.Sprintf("%dy ago", int(d/(365*24*time.Hour)))
+}
+
+// NewestFirst returns the lines sorted by modification time, latest first,
+// then by path; a line with an unknown time comes last. The input is left as
+// it is.
+func NewestFirst(lines []Line) []Line {
+	out := append([]Line(nil), lines...)
+	sort.SliceStable(out, func(i, j int) bool {
+		a, b := out[i], out[j]
+		switch {
+		case a.Mod.IsZero() != b.Mod.IsZero():
+			return !a.Mod.IsZero()
+		case !a.Mod.Equal(b.Mod):
+			return a.Mod.After(b.Mod)
+		}
+		return strings.ToLower(a.Rel) < strings.ToLower(b.Rel)
+	})
+	return out
+}
+
+// First returns at most n lines from the start; a n of zero or less keeps
+// them all.
+func First(lines []Line, n int) []Line {
+	if n <= 0 || len(lines) <= n {
+		return lines
+	}
+	return lines[:n]
 }

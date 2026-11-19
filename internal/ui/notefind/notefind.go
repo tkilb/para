@@ -27,14 +27,18 @@ const (
 	Cancelled
 )
 
-// ItemFunc makes the picker item for the note at rel.
-type ItemFunc func(rel string) picker.Item
+// ItemFunc makes the picker item for a note, given its line (see
+// findtext.Notes).
+type ItemFunc func(note findtext.Line) picker.Item
 
 // Model is the popup state. Methods return updated copies.
 type Model struct {
 	picker picker.Model
 	bar    filterbar.Bar
 	item   ItemFunc
+	// limit is the most notes listed, taken from the start of the order they
+	// came in; zero lists them all.
+	limit int
 }
 
 // New returns the popup over notes, one line for each note in the order to
@@ -47,12 +51,22 @@ func New(title string, notes []findtext.Line, item ItemFunc, opts filterbar.Opti
 	return m, cmd
 }
 
-// items are the picker items of the notes that pass the filters.
+// Recent limits the list to the first limit notes that pass the filters, so
+// notes given newest first list the most recent ones, and keeps that order
+// among matches of the same quality while typing.
+func (m Model) Recent(limit int) Model {
+	m.limit = limit
+	m.picker = m.picker.KeepOrder().SetItems(m.items())
+	return m
+}
+
+// items are the picker items of the notes that pass the filters, at most the
+// limit.
 func (m Model) items() []picker.Item {
-	scoped := m.bar.Scope()
+	scoped := findtext.First(m.bar.Scope(), m.limit)
 	items := make([]picker.Item, len(scoped))
 	for i, l := range scoped {
-		items[i] = m.item(l.Rel)
+		items[i] = m.item(l)
 	}
 	return items
 }
