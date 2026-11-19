@@ -15,6 +15,8 @@ const (
 	RowHeight = 3
 	// maxSuggestions is the most folders the dir suggestions show at once.
 	maxSuggestions = 8
+	// dirPercent is the share of the row the dir box takes.
+	dirPercent = 60
 	// popupWidth is the outer width of the filters popup.
 	popupWidth = 44
 )
@@ -25,16 +27,21 @@ var (
 	selBg       = panel.SelectedRowBackground
 )
 
-// Row draws the three boxes side by side: space and kind share leftW columns,
-// the width of the list below, and dir takes rightW, the width of the pane
-// beside it. Both are outer widths.
+// dirWidth is the outer width of the dir box in a row total columns wide.
+func dirWidth(total int) int { return total * dirPercent / 100 }
+
+// Row draws the three boxes side by side across leftW+rightW columns, the
+// width of the list and the pane beside it: dir takes dirPercent of it, which
+// its paths need, and space and kind share the rest equally.
 func (b Bar) Row(leftW, rightW int) string {
+	total := leftW + rightW
+	dirW := dirWidth(total)
 	// A panel is two columns wider than the width it is given.
-	spaceW := (leftW - 4) / 2
+	spaceW := (total - dirW - 4) / 2
 	return lipgloss.JoinHorizontal(lipgloss.Top,
 		b.spacePane(spaceW),
-		b.kindPane(leftW-4-spaceW),
-		b.dirPane(rightW-2),
+		b.kindPane(total-dirW-4-spaceW),
+		b.dirPane(dirW-2),
 	)
 }
 
@@ -42,11 +49,13 @@ func (b Bar) Row(leftW, rightW int) string {
 // (paneRows tall, the list leftW wide and the pane beside it rightW wide): the
 // dir suggestions under the dir box and the filters popup in the middle.
 func (b Bar) Overlay(view string, leftW, rightW, paneRows int) string {
+	total := leftW + rightW
 	if b.suggesting() {
-		view = overlay(view, b.suggestionBox(rightW-2, paneRows-2), leftW, RowHeight)
+		dirW := dirWidth(total)
+		view = overlay(view, b.suggestionBox(dirW-2, paneRows-2), total-dirW, RowHeight)
 	}
 	if b.open {
-		x := max((leftW+rightW-popupWidth)/2, 0)
+		x := max((total-popupWidth)/2, 0)
 		view = overlay(view, b.popupBox(), x, RowHeight+1)
 	}
 	return view
