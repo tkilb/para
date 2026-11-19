@@ -66,17 +66,59 @@ func (m Model) pageRows() int {
 // lines on the left and the note around the highlighted line on the right.
 func (m Model) View(screenW, screenH int) string {
 	left, right, inner := dims(screenW, screenH)
-	spaceW := (left - 2) / 2
+	// A panel is two columns wider than the width it is given.
+	spaceW := (left - 4) / 2
 	filters := lipgloss.JoinHorizontal(lipgloss.Top,
 		m.spacePane(spaceW),
-		m.kindPane(left-2-spaceW),
+		m.kindPane(left-4-spaceW),
 		m.dirPane(right-2),
 	)
 	panes := lipgloss.JoinHorizontal(lipgloss.Top,
 		m.listPane(left-2, inner),
 		m.previewPane(right-2, inner),
 	)
+	if m.suggesting() {
+		panes = overlay(panes, m.suggestionBox(right-2, inner), left)
+	}
 	return lipgloss.JoinVertical(lipgloss.Left, filters, panes)
+}
+
+// maxSuggestions is the most folders the dir suggestions show at once.
+const maxSuggestions = 8
+
+// suggestionBox draws the folders that could come next in the dir field as a
+// dropdown, with the one chosen by the arrows highlighted. height is the
+// room of the panes it covers.
+func (m Model) suggestionBox(width, height int) string {
+	names := m.dirHints()
+	rows := max(min(len(names), maxSuggestions, height-2), 1)
+	start, end := panel.ScrollWindow(max(m.hintSel, 0), len(names), rows)
+	lines := make([]string, 0, rows)
+	for i := start; i < end; i++ {
+		text := ansi.Truncate(names[i]+"/", max(width-2, 1), "…")
+		row := text + strings.Repeat(" ", max(width-2-ansi.StringWidth(text), 0))
+		if i == m.hintSel {
+			row = lipgloss.NewStyle().Background(selBg).Render(row)
+		}
+		lines = append(lines, row)
+	}
+	footer := panel.Footer{Left: "↑/↓ choose  tab complete", Tint: true}
+	return panel.Frame("Folders", strings.Join(lines, "\n"), width, len(lines), true, footer)
+}
+
+// overlay draws box over the lines of base from its top, starting at column
+// x, keeping what base shows on either side.
+func overlay(base, box string, x int) string {
+	baseLines, boxLines := strings.Split(base, "\n"), strings.Split(box, "\n")
+	for i, b := range boxLines {
+		if i >= len(baseLines) {
+			break
+		}
+		line := baseLines[i]
+		rest := ansi.TruncateLeft(line, x+ansi.StringWidth(b), "")
+		baseLines[i] = ansi.Truncate(line, x, "") + b + rest
+	}
+	return strings.Join(baseLines, "\n")
 }
 
 // spacePane draws the space filter: the chosen space between arrows.
@@ -321,12 +363,7 @@ func (m Model) hint() string {
 	return fmt.Sprintf(hint, state)
 }
 
-// dirFooter is the help under the dir field: the folders tab would complete
-// to, else what the field is for.
+// dirFooter is the help under the dir field: what the field is for.
 func (m Model) dirFooter() string {
-	names := m.dirHints()
-	if len(names) == 0 {
-		return "path in the space"
-	}
-	return "tab: " + strings.Join(names, "/  ") + "/"
+	return "path in the space"
 }

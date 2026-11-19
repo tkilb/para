@@ -72,10 +72,13 @@ const kindAll store.Kind = ""
 
 // Model is the popup state. Methods return updated copies.
 type Model struct {
-	field  textinput.Model
-	lines  []findtext.Line
-	rels   []string        // the notes of lines, once each, for completing the dir
-	scoped []findtext.Line // lines inside the space and the path filter
+	field textinput.Model
+	lines []findtext.Line
+	rels  []string // the notes of lines, once each, for completing the dir
+	// hintSel is the folder chosen in the dir suggestions with the arrows, or
+	// -1 when none is.
+	hintSel int
+	scoped  []findtext.Line // lines inside the space and the path filter
 
 	spaces   []Space // spaces[0] is All
 	space    int
@@ -117,7 +120,7 @@ func New(lines []findtext.Line, capped bool, load Loader, opts Options) (Model, 
 	dir.Placeholder = "(whole space)"
 
 	dir.SetValue(opts.Dir)
-	m := Model{field: field, dirField: dir, lines: lines, capped: capped, load: load}
+	m := Model{field: field, dirField: dir, lines: lines, capped: capped, load: load, hintSel: -1}
 	m.spaces = append([]Space{{Label: allLabel}}, opts.Spaces...)
 	for i, sp := range m.spaces {
 		if i > 0 && sp.Dir == opts.Space {
@@ -170,7 +173,40 @@ func (m Model) completeDir() (Model, bool) {
 		return m, false
 	}
 	m.dirField.SetValue(parent + next)
+	m.hintSel = -1
 	return m.rescope(), true
+}
+
+// acceptHint puts the chosen suggestion in the dir field, with a slash after
+// it, ready to list the folders inside it.
+func (m Model) acceptHint() Model {
+	names := m.dirHints()
+	if m.hintSel < 0 || m.hintSel >= len(names) {
+		return m
+	}
+	typed := strings.TrimLeft(strings.TrimSpace(m.dirField.Value()), "/")
+	m.dirField.SetValue(typed[:strings.LastIndex(typed, "/")+1] + names[m.hintSel] + "/")
+	m.hintSel = -1
+	return m.rescope()
+}
+
+// moveHint moves the choice in the dir suggestions delta places: from none to
+// the first with down, to the last with up, and back to none past either end.
+func (m Model) moveHint(delta int) Model {
+	n := len(m.dirHints())
+	m.hintSel += delta
+	switch {
+	case m.hintSel < -1:
+		m.hintSel = n - 1
+	case m.hintSel >= n:
+		m.hintSel = -1
+	}
+	return m
+}
+
+// suggesting reports whether the dir suggestions are open.
+func (m Model) suggesting() bool {
+	return m.focus == focusDir && len(m.dirHints()) > 0
 }
 
 // commonPrefix is the longest start shared by names, ignoring case, in the
@@ -223,7 +259,7 @@ func (m Model) rescope() Model {
 
 // setFocus moves the keyboard to field f.
 func (m Model) setFocus(f focus) (Model, tea.Cmd) {
-	m.focus = f
+	m.focus, m.hintSel = f, -1
 	m.field.Blur()
 	m.dirField.Blur()
 	switch f {
@@ -240,6 +276,7 @@ func (m Model) setFocus(f focus) (Model, tea.Cmd) {
 func (m Model) pickSpace(delta int) Model {
 	m.space = (m.space + delta + len(m.spaces)) % len(m.spaces)
 	m.dirField.SetValue("")
+	m.hintSel = -1
 	return m.rescope()
 }
 
@@ -267,12 +304,24 @@ func (m Model) Chosen() (search.Hit, bool) {
 // Update handles a message: the arrows move through the lines, page up and
 // down move by a page, ctrl+d and ctrl+u scroll the preview, tab and
 // shift+tab move between the query, space, kind and dir fields (tab in dir
-// completes the folder first), ctrl+s shows or
+// completes the folder first; up and down choose from its suggestions), ctrl+s shows or
 // hides the lines of _source.md files, enter chooses,
 // esc cancels, and anything else edits the field in focus (left, right, h, l
 // and space change the space or kind).
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd, Outcome) {
 	if k, ok := msg.(tea.KeyMsg); ok {
+		if m.suggesting() {
+			switch k.String() {
+			case "up", "ctrl+p":
+				return m.moveHint(-1), nil, Pending
+			case "down", "ctrl+n":
+				return m.moveHint(1), nil, Pending
+			case "enter", "tab":
+				if m.hintSel >= 0 {
+					return m.acceptHint(), nil, Pending
+				}
+			}
+		}
 		switch k.String() {
 		case "esc":
 			return m, nil, Cancelled
@@ -327,6 +376,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd, Outcome) {
 		var cmd tea.Cmd
 		m.dirField, cmd = m.dirField.Update(msg)
 		if m.dirField.Value() != before {
+			m.hintSel = -1
 			m = m.rescope()
 		}
 		return m, cmd, Pending
