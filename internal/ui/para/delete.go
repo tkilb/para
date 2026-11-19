@@ -115,6 +115,11 @@ func (m Model) deletePermanently() (Model, Effect) {
 
 // ApplyInput carries out a Prompt with the text the user typed.
 func (m Model) ApplyInput(op InputOp, text string) (Model, Effect) {
+	m, eff := m.applyInput(op, text)
+	return m.syncScroll(), eff
+}
+
+func (m Model) applyInput(op InputOp, text string) (Model, Effect) {
 	switch op {
 	case OpCreate:
 		return m.create(text)

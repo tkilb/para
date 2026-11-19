@@ -101,6 +101,10 @@ type Model struct {
 	field   textinput.Model
 	matches []match
 	cursor  int
+	// top is the first line of the list shown, kept so the list scrolls only
+	// when the cursor comes near an edge (see panel.ScrollTop). A centered
+	// picker does not use it.
+	top int
 	// screenHeight is the terminal height, which sets how many rows a page
 	// is; zero (unknown) means a full list.
 	screenHeight int
@@ -233,13 +237,53 @@ func (m Model) pageRows(screenHeight int) int {
 // types anything), clamped to the list.
 func (m Model) WithCursor(i int) Model {
 	m.cursor = min(max(i, 0), max(len(m.matches)-1, 0))
+	return m.syncTop()
+}
+
+// syncTop moves the first line shown as far as the cursor needs, so the next
+// move inside the window does not scroll it.
+func (m Model) syncTop() Model {
+	if m.centered {
+		return m
+	}
+	cursorLine, total := m.lineLayout()
+	m.top = panel.ScrollTop(m.top, cursorLine, total, m.visibleRows(total), panel.ScrollOff)
 	return m
+}
+
+// lineLayout is the line the cursor is on and the number of lines the list
+// takes, counting the group headings, as listLines draws them.
+func (m Model) lineLayout() (cursorLine, total int) {
+	var prev []string
+	for i, mt := range m.matches {
+		group := m.items[mt.item].Group
+		from := 0
+		for from < len(prev) && from < len(group) && prev[from] == group[from] {
+			from++
+		}
+		total += len(group) - from
+		prev = group
+		if i == m.cursor {
+			cursorLine = total
+		}
+		total++
+	}
+	return cursorLine, total
+}
+
+// visibleRows is how many lines of a list of total lines the box shows.
+func (m Model) visibleRows(total int) int {
+	if m.preview || m.tall {
+		// A fixed height keeps the box from jumping as the list narrows.
+		return m.pageRows(m.screenHeight)
+	}
+	return min(m.pageRows(m.screenHeight), max(total, 1))
 }
 
 // refilter recomputes the matches for the current text and puts the cursor
 // on the best one.
 func (m Model) refilter() Model {
-	m.cursor = 0
+	m.cursor, m.top = 0, 0
 	words := strings.Fields(m.field.Value())
 	if len(words) == 0 {
 		m.matches = make([]match, len(m.items))
@@ -324,7 +368,7 @@ func (m Model) regroup() Model {
 	sort.SliceStable(m.matches, func(i, j int) bool {
 		return first[m.items[m.matches[i].item].groupKey()] < first[m.items[m.matches[j].item].groupKey()]
 	})
-	m.cursor = 0
+	m.cursor, m.top = 0, 0
 	return m
 }
 
@@ -352,16 +396,16 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd, Outcome) {
 			return m, nil, Pending
 		case "up":
 			m.cursor = max(m.cursor-1, 0)
-			return m, nil, Pending
+			return m.syncTop(), nil, Pending
 		case "down":
 			m.cursor = min(m.cursor+1, max(len(m.matches)-1, 0))
-			return m, nil, Pending
+			return m.syncTop(), nil, Pending
 		case "pgup", "ctrl+u":
 			m.cursor = max(m.cursor-m.pageRows(m.screenHeight), 0)
-			return m, nil, Pending
+			return m.syncTop(), nil, Pending
 		case "pgdown", "ctrl+d":
 			m.cursor = min(m.cursor+m.pageRows(m.screenHeight), max(len(m.matches)-1, 0))
-			return m, nil, Pending
+			return m.syncTop(), nil, Pending
 		}
 	}
 	before := m.field.Value()
@@ -389,7 +433,7 @@ func (m Model) View(screenWidth, screenHeight int) string {
 	if len(m.matches) == 0 {
 		lines = append(lines, dimStyle.Render(noMatchLabel))
 	} else {
-		start, end := panel.ScrollWindow(cursorLine, len(rowLines), rows)
+		start, end := panel.Window(panel.ScrollTop(m.top, cursorLine, len(rowLines), rows, panel.ScrollOff), len(rowLines), rows)
 		if m.centered {
 			start, end = centeredWindow(cursorLine, len(rowLines), rows)
 		}

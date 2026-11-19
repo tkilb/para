@@ -12,6 +12,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/tkilb/para/internal/store"
+	"github.com/tkilb/para/internal/ui/panel"
 )
 
 type tabDef struct {
@@ -47,6 +48,9 @@ type tabState struct {
 	dir    string
 	rows   []row
 	cursor int
+	// top is the first row shown, kept so the list scrolls only when the
+	// cursor comes near an edge (see panel.ScrollTop).
+	top int
 	// keep is the name to put the cursor on at the next load, when set.
 	keep string
 	err  error
@@ -146,6 +150,14 @@ func (m Model) WithMarks(uids []string) Model {
 // Resize sets the number of rows inside the panel's border.
 func (m Model) Resize(visibleRows int) Model {
 	m.innerRows = max(visibleRows, 1)
+	return m.syncScroll()
+}
+
+// syncScroll moves the first row shown of the active tab as far as the cursor
+// needs, so the next move inside the window does not scroll it.
+func (m Model) syncScroll() Model {
+	t := &m.tabs[m.active]
+	t.top = panel.ScrollTop(t.top, t.cursor, len(t.rows), m.listRows(), panel.ScrollOff)
 	return m
 }
 
@@ -155,7 +167,7 @@ func (m Model) Reload() Model {
 	for i, t := range m.tabs {
 		m.tabs[i] = tabState{dir: t.dir, cursor: t.cursor, keep: t.wantedName(), selected: t.selected, search: t.search}
 	}
-	return m.load(m.active)
+	return m.load(m.active).syncScroll()
 }
 
 // load reads tab i's current directory and each note's kind.
@@ -222,6 +234,11 @@ func restoreCursor(rows []row, cursor int, keep string) int {
 // Update handles a key press while the panel has focus. The Effect says
 // what the root model must do besides showing the updated panel.
 func (m Model) Update(msg tea.KeyMsg) (Model, Effect) {
+	m, eff := m.update(msg)
+	return m.syncScroll(), eff
+}
+
+func (m Model) update(msg tea.KeyMsg) (Model, Effect) {
 	switch msg.String() {
 	case "y":
 		return m.setClip(clipYank)

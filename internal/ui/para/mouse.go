@@ -18,7 +18,7 @@ func (m Model) SelectTab(i int) Model {
 	if i < 0 || i >= len(tabDefs) {
 		return m
 	}
-	return m.switchTab(i)
+	return m.switchTab(i).syncScroll()
 }
 
 // RowAt returns the index of the row drawn at content row y (0 is the first
@@ -28,11 +28,11 @@ func (m Model) RowAt(y int) (int, bool) {
 	if t.err != nil {
 		return 0, false
 	}
-	return panel.RowAt(y-m.headerRows(), t.cursor, len(t.rows), m.listRows())
+	return panel.RowAtScroll(y-m.headerRows(), t.top, t.cursor, len(t.rows), m.listRows())
 }
 
 // SelectRow puts the cursor on row i, as moving with the arrow keys does.
 func (m Model) SelectRow(i int) Model {
 	m.moveTo(i)
-	return m
+	return m.syncScroll()
 }

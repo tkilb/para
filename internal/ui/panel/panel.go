@@ -158,6 +158,47 @@ func ScrollWindow(cursor, totalItems, visibleRows int) (start, end int) {
 	return start, start + visibleRows
 }
 
+// ScrollOff is how many rows of context a list keeps above and below its
+// cursor while scrolling, as Vim's scrolloff does.
+const ScrollOff = 3
+
+// ScrollTop returns the index of the first row to show in a list of total
+// rows, rows of which fit, given the first row shown before (top) and the
+// cursor. The window stays where it is while the cursor moves inside it, and
+// scrolls only when the cursor comes within margin rows of an edge, so the
+// cursor is not stuck on the last row. At either end of the list the cursor
+// can reach the edge. The caller keeps the result to pass in next time.
+func ScrollTop(top, cursor, total, rows, margin int) int {
+	rows = max(rows, 1)
+	margin = min(max(margin, 0), (rows-1)/2)
+	if cursor < top+margin {
+		top = cursor - margin
+	}
+	if cursor > top+rows-1-margin {
+		top = cursor - (rows - 1 - margin)
+	}
+	return min(max(top, 0), max(total-rows, 0))
+}
+
+// Window returns the [start, end) slice bounds of a list of total items that
+// shows rows of them from top, as ScrollTop chose.
+func Window(top, total, rows int) (start, end int) {
+	rows = max(rows, 1)
+	start = min(max(top, 0), max(total-rows, 0))
+	return start, min(start+rows, total)
+}
+
+// RowAtScroll maps a content row of a list (0 is the first row drawn) to the
+// item index drawn there for a list drawn with ScrollTop and Window. It
+// reports false past the last item.
+func RowAtScroll(row, top, cursor, total, rows int) (int, bool) {
+	start, end := Window(ScrollTop(top, cursor, total, rows, ScrollOff), total, rows)
+	if row < 0 || start+row >= end {
+		return 0, false
+	}
+	return start + row, true
+}
+
 // topBorder builds the top border line with the title embedded, e.g.
 // "╭──[1]-Notebook────────╮". A title that does not fit within width is
 // truncated to avoid overflowing the panel.

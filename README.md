@@ -120,6 +120,8 @@ Add your own kinds, or change how these look, with the `kinds` list in the confi
 
 ## Keys
 
+Every long list (the PARA panel, the finders, the text search and the pickers) scrolls with a margin: the cursor moves inside the window and the list scrolls only when it comes within three rows of the top or bottom, until the list ends. See `docs/scroll-qa.md`.
+
 **Anywhere**
 
 | Key | Action |

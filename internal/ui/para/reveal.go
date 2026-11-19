@@ -43,7 +43,7 @@ func (m Model) Reveal(rel string) (Model, bool) {
 		t.selected, t.visual, t.search = nil, visualState{}, ""
 		m.tabs[i] = t
 		m.active = i
-		return m.load(i), true
+		return m.load(i).syncScroll(), true
 	}
 	return m, false
 }

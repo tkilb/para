@@ -91,7 +91,7 @@ func (m Model) listPane(width, height int) string {
 	case len(m.res.Hits) == 0:
 		lines = append(lines, dimStyle.Render(noMatch))
 	default:
-		start, end := panel.ScrollWindow(m.cursor, len(m.res.Hits), rows)
+		start, end := panel.Window(panel.ScrollTop(m.top, m.cursor, len(m.res.Hits), rows, panel.ScrollOff), len(m.res.Hits), rows)
 		for i := start; i < end; i++ {
 			lines = append(lines, listRow(m.res.Hits[i], width, i == m.cursor))
 		}

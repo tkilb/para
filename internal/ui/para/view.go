@@ -177,7 +177,7 @@ func (m Model) body(t tabState, width, height int, focused bool) string {
 		return dimStyle.Render("(empty)")
 	}
 
-	start, end := panel.ScrollWindow(t.cursor, len(t.rows), height)
+	start, end := panel.Window(panel.ScrollTop(t.top, t.cursor, len(t.rows), height, panel.ScrollOff), len(t.rows), height)
 	lines := make([]string, 0, end-start)
 	for i := start; i < end; i++ {
 		lines = append(lines, renderRow(t.rows[i], width, i == t.cursor && focused, m.markOf(t, t.rows[i]), m.marks[t.rows[i].uid], t.search))

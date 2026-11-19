@@ -11,6 +11,7 @@ import (
 	"github.com/tkilb/para/internal/findtext"
 	"github.com/tkilb/para/internal/search"
 	"github.com/tkilb/para/internal/ui/filterbar"
+	"github.com/tkilb/para/internal/ui/panel"
 )
 
 const (
@@ -51,6 +52,9 @@ type Model struct {
 
 	res    search.Result
 	cursor int
+	// top is the first line of the list shown, kept so the list scrolls only
+	// when the cursor comes near an edge (see panel.ScrollTop).
+	top int
 
 	// preview is the note of the highlighted line; scroll moves the view of
 	// it away from the line, in lines.
@@ -80,7 +84,7 @@ func New(lines []findtext.Line, capped bool, load Loader, opts Options) (Model, 
 func (m Model) rescope() Model {
 	m.scoped = m.bar.Scope()
 	m.res = search.Find(m.scoped, m.field.Value(), maxHits)
-	m.cursor, m.scroll = 0, 0
+	m.cursor, m.scroll, m.top = 0, 0, 0
 	return m.syncPreview()
 }
 
@@ -141,7 +145,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd, Outcome) {
 	m.field, cmd = m.field.Update(msg)
 	if m.field.Value() != oldQuery {
 		m.res = search.Find(m.scoped, m.field.Value(), maxHits)
-		m.cursor, m.scroll = 0, 0
+		m.cursor, m.scroll, m.top = 0, 0, 0
 		m = m.syncPreview()
 	}
 	return m, cmd, Pending
@@ -165,6 +169,7 @@ func (m Model) syncQueryFocus(before filterbar.Field) (Model, tea.Cmd) {
 func (m Model) move(delta int) Model {
 	m.cursor = min(max(m.cursor+delta, 0), max(len(m.res.Hits)-1, 0))
 	m.scroll = 0
+	m.top = panel.ScrollTop(m.top, m.cursor, len(m.res.Hits), m.pageRows(), panel.ScrollOff)
 	return m.syncPreview()
 }
 
