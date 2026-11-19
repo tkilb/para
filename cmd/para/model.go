@@ -654,6 +654,10 @@ func (m model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m, cmd = m.paraKey(msg)
 		}
 	default:
+		if key == "c" && m.focus == panelPARA {
+			m = m.copyPath()
+			break
+		}
 		if key == "y" && m.focus == panelContent {
 			m = m.yankContent()
 			break

@@ -160,6 +160,7 @@ In every picker, type to narrow the list (words separated by spaces must all mat
 | `v` / `V` | Select / unselect a range as you move |
 | `ctrl+a` | Select all |
 | `y` / `x` | Yank / cut into a buffer that lasts while you move between folders (`Y` / `X` clear it) |
+| `c` | Copy the full path of the selected folder or file to the system clipboard |
 | `p` / `P` | Paste / paste over |
 | `d` / `D` | Move to the trash / delete permanently |
 | `a` | New note (end the name with `/` for a folder) |

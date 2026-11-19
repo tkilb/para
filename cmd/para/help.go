@@ -53,6 +53,7 @@ var helpParaBindings = []statusbar.Binding{
 	{Key: "esc", Label: "leave visual mode, search, selection"},
 	{Key: "y/x", Label: "yank/cut"},
 	{Key: "Y/X", Label: "cancel yank/cut"},
+	{Key: "c", Label: "copy the full path of the selected folder or file to the clipboard"},
 	{Key: "p/P", Label: "paste/paste over (a single image with a note under the cursor asks: bundle with the note, or paste beside)"},
 	{Key: "d/D", Label: "trash/delete permanently"},
 	{Key: "a", Label: "new note (end with / for folder)"},
