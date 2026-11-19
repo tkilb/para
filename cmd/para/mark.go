@@ -9,7 +9,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/tkilb/para/internal/state"
+	"github.com/tkilb/para/internal/marks"
 	"github.com/tkilb/para/internal/store"
 	"github.com/tkilb/para/internal/textsafe"
 	"github.com/tkilb/para/internal/ui/picker"
@@ -86,8 +86,8 @@ func (m model) toggleMark(rel string) model {
 	if uid != "" && slices.Contains(m.markUIDs, uid) {
 		return m.setMarks(slices.DeleteFunc(slices.Clone(m.markUIDs), func(u string) bool { return u == uid }))
 	}
-	if len(m.markUIDs) >= state.MaxMarks {
-		return m.notify(popup.Info, fmt.Sprintf("You can mark at most %d notes. Clear a mark first.", state.MaxMarks))
+	if len(m.markUIDs) >= marks.Max {
+		return m.notify(popup.Info, fmt.Sprintf("You can mark at most %d notes. Clear a mark first.", marks.Max))
 	}
 	if uid == "" {
 		m = m.editNote(rel, "mark", func(*store.Frontmatter) {})
@@ -105,32 +105,48 @@ func (m model) setMarks(uids []string) model {
 	return m.saveMarks()
 }
 
-// saveMarks writes the marks of the open notebook. It does nothing when
-// persistence is off.
+// saveMarks writes the marks file of the open notebook.
 func (m model) saveMarks() model {
-	if m.session.db == nil {
-		return m
-	}
-	if err := m.session.db.SaveMarks(m.session.notebook, m.markUIDs); err != nil {
+	if err := marks.Save(m.session.notebook, m.markUIDs); err != nil {
 		return m.notify(popup.Warning, fmt.Sprintf("Could not save your marks: %s.", err))
 	}
 	return m
 }
 
-// loadMarks reads the saved marks of the open notebook into PARA.
+// loadMarks reads the marks file of the open notebook into PARA. A notebook
+// without the file takes the marks an older para kept in the state database,
+// and writes them to the file so that happens once.
 func (m model) loadMarks() model {
 	m.markUIDs = nil
 	m.para = m.para.WithMarks(nil)
-	if m.session.db == nil {
-		return m
-	}
-	uids, err := m.session.db.LoadMarks(m.session.notebook)
+	uids, exists, err := marks.Load(m.session.notebook)
 	if err != nil {
 		return m.notify(popup.Warning, fmt.Sprintf("Could not restore your marks: %s.", err))
+	}
+	if !exists {
+		uids = m.legacyMarks()
+		if len(uids) > 0 {
+			if err := marks.Save(m.session.notebook, uids); err != nil {
+				m = m.notify(popup.Warning, fmt.Sprintf("Could not move your marks into the notebook: %s.", err))
+			}
+		}
 	}
 	m.markUIDs = uids
 	m.para = m.para.WithMarks(uids)
 	return m
+}
+
+// legacyMarks returns the marks the state database holds for the open
+// notebook, or none when persistence is off or the read fails.
+func (m model) legacyMarks() []string {
+	if m.session.db == nil {
+		return nil
+	}
+	uids, err := m.session.db.LoadMarks(m.session.notebook)
+	if err != nil {
+		return nil
+	}
+	return uids
 }
 
 // paraOrder is the order the top folders are listed in: Inbox, then PARA.

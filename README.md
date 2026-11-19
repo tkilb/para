@@ -77,7 +77,7 @@ archives/
 .para/      hidden: the trash (see Syncing)
 ```
 
-Where para keeps its own state (your position in each notebook, your marks, the last notebook) is `~/.local/state/para/state.db`, or `$XDG_STATE_HOME/para`, or the folder in `PARA_STATE_DIR`. It is outside the notebooks.
+Where para keeps its own state (your position in each notebook and the last notebook) is `~/.local/state/para/state.db`, or `$XDG_STATE_HOME/para`, or the folder in `PARA_STATE_DIR`. It is outside the notebooks.
 
 ## Syncing and version control
 
@@ -87,7 +87,7 @@ Where para keeps its own state (your position in each notebook, your marks, the 
 .para/
 ```
 
-para never edits files other than your notes, so it does not add that line for you. Obsidian already hides folders that start with a dot. Everything else para keeps (positions, marks) lives outside the notebook, so there is nothing else to exclude.
+para never edits files other than your notes and `.para-marks`, so it does not add that line for you. Obsidian already hides folders that start with a dot. The one other file para keeps in a notebook is `.para-marks` (your marks, one note uid per line), described under `m` `m`. Positions live outside the notebook.
 
 ## The screen
 
@@ -165,7 +165,7 @@ In every picker, type to narrow the list (words separated by spaces must all mat
 | `a` | New note (end the name with `/` for a folder) |
 | `r` | Rename, updating references in other notes |
 | `K` | Set the kind |
-| `m` `m` | Press `m` twice in a row to mark the selected note with an orange bullet in the first column of its row (a selected, yanked or cut row shows its bar instead), or clear the mark. Notes only. A mark follows the note's `uid` (one is added to the note when it has none) and is kept in the state database, per notebook |
+| `m` `m` | Press `m` twice in a row to mark the selected note with an orange bullet in the first column of its row (a selected, yanked or cut row shows its bar instead), or clear the mark. Notes only. A mark follows the note's `uid` (one is added to the note when it has none) and is kept in `.para-marks`, a hidden file at the notebook root, so marks travel with the notebook (git sync, backups). Marks an older para kept in the state database move into that file the first time the notebook opens |
 | `e` | Edit in `$EDITOR` |
 | `/` then `n` / `N` | Search names, then step through the matches |
 | `.` | Show hidden files |

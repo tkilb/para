@@ -33,10 +33,10 @@ func openSession(root string) (session, error) {
 // the app then starts from the defaults.
 func (m model) withSession(s session) model {
 	m.session = s
+	m = m.loadMarks()
 	if s.db == nil {
 		return m
 	}
-	m = m.loadMarks()
 	nb, err := s.db.LoadNotebook(s.notebook)
 	if err != nil {
 		return m.notify(popup.Warning, fmt.Sprintf("Could not restore your last position: %s.", err))
