@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/tkilb/para/internal/search"
+	"github.com/tkilb/para/internal/ui/filterbar"
 	"github.com/tkilb/para/internal/ui/panel"
 )
 
@@ -18,10 +19,8 @@ const (
 	boxMarginRows = 6
 	minWidth      = 60
 	maxWidth      = 200
-	// filterRows is the height of the space and dir panels above the list.
-	filterRows = 3
-	minHeight  = 10
-	maxHeight  = 45
+	minHeight     = 10
+	maxHeight     = 45
 	// leftPercent is the share of the width the list takes.
 	leftPercent = 50
 	// pathPercent is the most of a list row the path may take.
@@ -52,7 +51,7 @@ func dims(screenW, screenH int) (left, right, inner int) {
 	total := min(max(screenW-boxMarginCols, minWidth), maxWidth)
 	left = total * leftPercent / 100
 	outer := min(max(screenH-boxMarginRows, minHeight), maxHeight)
-	return left, total - left, outer - 2 - filterRows
+	return left, total - left, outer - 2 - filterbar.RowHeight
 }
 
 // pageRows is how many list rows the popup shows.
@@ -66,108 +65,12 @@ func (m Model) pageRows() int {
 // lines on the left and the note around the highlighted line on the right.
 func (m Model) View(screenW, screenH int) string {
 	left, right, inner := dims(screenW, screenH)
-	// A panel is two columns wider than the width it is given.
-	spaceW := (left - 4) / 2
-	filters := lipgloss.JoinHorizontal(lipgloss.Top,
-		m.spacePane(spaceW),
-		m.kindPane(left-4-spaceW),
-		m.dirPane(right-2),
-	)
 	panes := lipgloss.JoinHorizontal(lipgloss.Top,
 		m.listPane(left-2, inner),
 		m.previewPane(right-2, inner),
 	)
-	if m.suggesting() {
-		panes = overlay(panes, m.suggestionBox(right-2, inner), left, 0)
-	}
-	view := lipgloss.JoinVertical(lipgloss.Left, filters, panes)
-	if m.filtersOpen {
-		x := max((left+right-filtersBoxWidth)/2, 0)
-		view = overlay(view, m.filtersBox(), x, filterRows+1)
-	}
-	return view
-}
-
-// maxSuggestions is the most folders the dir suggestions show at once.
-const maxSuggestions = 8
-
-// suggestionBox draws the folders that could come next in the dir field as a
-// dropdown, with the one chosen by the arrows highlighted. height is the
-// room of the panes it covers.
-func (m Model) suggestionBox(width, height int) string {
-	names := m.dirHints()
-	rows := max(min(len(names), maxSuggestions, height-2), 1)
-	start, end := panel.ScrollWindow(max(m.hintSel, 0), len(names), rows)
-	lines := make([]string, 0, rows)
-	for i := start; i < end; i++ {
-		text := ansi.Truncate(names[i]+"/", max(width-2, 1), "…")
-		row := text + strings.Repeat(" ", max(width-2-ansi.StringWidth(text), 0))
-		if i == m.hintSel {
-			row = lipgloss.NewStyle().Background(selBg).Render(row)
-		}
-		lines = append(lines, row)
-	}
-	footer := panel.Footer{Left: "↑/↓ choose  enter fill in", Tint: true}
-	return panel.Frame("Folders", strings.Join(lines, "\n"), width, len(lines), true, footer)
-}
-
-// overlay draws box over the lines of base from line y, starting at column
-// x, keeping what base shows on either side.
-func overlay(base, box string, x, y int) string {
-	baseLines, boxLines := strings.Split(base, "\n"), strings.Split(box, "\n")
-	for i, b := range boxLines {
-		if y+i >= len(baseLines) {
-			break
-		}
-		line := baseLines[y+i]
-		rest := ansi.TruncateLeft(line, x+ansi.StringWidth(b), "")
-		baseLines[y+i] = ansi.Truncate(line, x, "") + b + rest
-	}
-	return strings.Join(baseLines, "\n")
-}
-
-// spacePane draws the space filter: the chosen space between arrows.
-func (m Model) spacePane(width int) string {
-	focused := m.focus == focusSpace
-	label := m.spaces[m.space].Label
-	body := dimStyle.Render("‹ ") + promptStyle.Render(label) + dimStyle.Render(" ›")
-	footer := panel.Footer{}
-	if focused {
-		footer = panel.Footer{Left: "←/→ or space change", Tint: true}
-	}
-	return panel.Frame("Space", ansi.Truncate(body, width, "…"), width, 1, focused, footer)
-}
-
-// kindPane draws the kind filter: the chosen kind between arrows.
-func (m Model) kindPane(width int) string {
-	focused := m.focus == focusKind
-	label := allLabel
-	if k := m.kinds[m.kind]; k != kindAll {
-		label = k.String()
-	}
-	body := dimStyle.Render("‹ ") + promptStyle.Render(label) + dimStyle.Render(" ›")
-	footer := panel.Footer{}
-	if focused {
-		footer = panel.Footer{Left: "←/→ or space change", Tint: true}
-	}
-	return panel.Frame("Kind", ansi.Truncate(body, width, "…"), width, 1, focused, footer)
-}
-
-// dirPane draws the path filter, which is inside the chosen space.
-func (m Model) dirPane(width int) string {
-	focused := m.focus == focusDir
-	in := m.dirField
-	in.Width = max(width-1, 1)
-	body := dimStyle.Render("")
-	if prefix := m.spaces[m.space].Dir; prefix != "" && (focused || in.Value() != "") {
-		body = dimStyle.Render(prefix + "/")
-		in.Width = max(width-ansi.StringWidth(prefix)-2, 1)
-	}
-	footer := panel.Footer{}
-	if focused {
-		footer = panel.Footer{Left: m.dirFooter(), Tint: true}
-	}
-	return panel.Frame("Dir", ansi.Truncate(body+in.View(), width, ""), width, 1, focused, footer)
+	view := lipgloss.JoinVertical(lipgloss.Left, m.bar.Row(left, right), panes)
+	return m.bar.Overlay(view, left, right, inner+2)
 }
 
 // listPane draws the query, a rule and the matching lines.
@@ -199,7 +102,7 @@ func (m Model) listPane(width, height int) string {
 	} else if m.res.Truncated {
 		footer.Right = fmt.Sprintf("first %d of %d", len(m.res.Hits), m.res.Total)
 	}
-	return panel.Frame("Grep", strings.Join(lines, "\n"), width, height, m.focus == focusQuery, footer)
+	return panel.Frame("Grep", strings.Join(lines, "\n"), width, height, m.bar.Focus() == filterbar.FieldQuery, footer)
 }
 
 // listRow draws one hit: the path (folders dim and italic, the note's name
@@ -357,38 +260,4 @@ func clampSpans(spans [][2]int, width int, line string) [][2]int {
 		}
 	}
 	return out
-}
-
-// filtersBoxWidth is the outer width of the filters popup.
-const filtersBoxWidth = 44
-
-// filtersBox draws the filters popup: a row for each filter with its choice
-// between arrows, the row the keys act on highlighted.
-func (m Model) filtersBox() string {
-	source := "hidden"
-	if m.showSource {
-		source = "shown"
-	}
-	rows := [filterCount][2]string{
-		rowSince:  {"Modified since", sinceOptions[m.since].Label},
-		rowSource: {"_source.md", source},
-	}
-	inner := filtersBoxWidth - 2
-	lines := make([]string, 0, filterCount)
-	for i, r := range rows {
-		value := dimStyle.Render("‹ ") + promptStyle.Render(r[1]) + dimStyle.Render(" ›")
-		gap := strings.Repeat(" ", max(inner-ansi.StringWidth(r[0])-ansi.StringWidth(value)-1, 1))
-		line := ansi.Truncate(" "+r[0]+gap+value, inner, "…")
-		if i == m.filterRow {
-			line = lipgloss.NewStyle().Background(selBg).Render(ansi.Strip(line))
-		}
-		lines = append(lines, line)
-	}
-	footer := panel.Footer{Left: "↑/↓ row  ←/→ change  esc close", Tint: true}
-	return panel.Frame("Filters", strings.Join(lines, "\n"), inner, len(lines), true, footer)
-}
-
-// dirFooter is the help under the dir field: what the field is for.
-func (m Model) dirFooter() string {
-	return "path in the space"
 }

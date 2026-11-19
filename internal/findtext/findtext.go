@@ -91,6 +91,21 @@ func Lines(s store.Store, rels []string) Result {
 	return res
 }
 
+// Notes returns one line for each note at rels that can be read, with its
+// Rel, Kind and Mod and no text, in order. It is for filtering whole notes
+// the way Lines are filtered. A note that cannot be read is skipped.
+func Notes(s store.Store, rels []string) []Line {
+	out := make([]Line, 0, len(rels))
+	for _, rel := range rels {
+		n, err := s.ReadNote(rel)
+		if err != nil {
+			continue
+		}
+		out = append(out, Line{Rel: rel, Kind: n.Kind, Mod: modTime(s, rel)})
+	}
+	return out
+}
+
 // modTime is when the file of the note at rel last changed, or the zero time
 // when it cannot be read.
 func modTime(s store.Store, rel string) time.Time {

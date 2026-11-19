@@ -215,3 +215,19 @@ func TestChangedSinceKeepsRecentAndUnknownTimes(t *testing.T) {
 	assert.Equal(t, []Line{lines[1], lines[2], lines[3]}, ChangedSince(lines, cutoff))
 	assert.Len(t, lines, 4, "the input is not changed")
 }
+
+func TestNotesListsOneLinePerReadableNote(t *testing.T) {
+	root := t.TempDir()
+	put(t, root, "inbox/f.md", "---\nkind: fact\n---\n\nsolid\nmore\n")
+	put(t, root, "inbox/empty.md", "")
+	when := time.Date(2026, 3, 1, 12, 0, 0, 0, time.UTC)
+	require.NoError(t, os.Chtimes(filepath.Join(root, "inbox/f.md"), when, when))
+	got := Notes(store.NewMarkdown(root), []string{"inbox/f.md", "inbox/missing.md", "inbox/empty.md"})
+
+	require.Len(t, got, 2, "an unreadable note is skipped and an empty one is kept")
+	assert.Equal(t, "inbox/f.md", got[0].Rel)
+	assert.Equal(t, store.KindFact, got[0].Kind)
+	assert.True(t, got[0].Mod.Equal(when))
+	assert.Empty(t, got[0].Text)
+	assert.Equal(t, store.KindUnset, got[1].Kind)
+}
