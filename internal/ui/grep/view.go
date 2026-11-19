@@ -61,13 +61,15 @@ func (m Model) pageRows() int {
 	return max(inner-2, 1) // the query and the rule above the list
 }
 
-// View draws the popup for a terminal screenW x screenH: the space and dir
-// filters on top, flush with the panes below them, then the query and the
+// View draws the popup for a terminal screenW x screenH: the space, kind and
+// dir filters on top, flush with the panes below them, then the query and the
 // lines on the left and the note around the highlighted line on the right.
 func (m Model) View(screenW, screenH int) string {
 	left, right, inner := dims(screenW, screenH)
+	spaceW := (left - 2) / 2
 	filters := lipgloss.JoinHorizontal(lipgloss.Top,
-		m.spacePane(left-2),
+		m.spacePane(spaceW),
+		m.kindPane(left-2-spaceW),
 		m.dirPane(right-2),
 	)
 	panes := lipgloss.JoinHorizontal(lipgloss.Top,
@@ -87,6 +89,21 @@ func (m Model) spacePane(width int) string {
 		footer = panel.Footer{Left: "←/→ or space change", Tint: true}
 	}
 	return panel.Frame("Space", ansi.Truncate(body, width, "…"), width, 1, focused, footer)
+}
+
+// kindPane draws the kind filter: the chosen kind between arrows.
+func (m Model) kindPane(width int) string {
+	focused := m.focus == focusKind
+	label := allLabel
+	if k := m.kinds[m.kind]; k != kindAll {
+		label = k.String()
+	}
+	body := dimStyle.Render("‹ ") + promptStyle.Render(label) + dimStyle.Render(" ›")
+	footer := panel.Footer{}
+	if focused {
+		footer = panel.Footer{Left: "←/→ or space change", Tint: true}
+	}
+	return panel.Frame("Kind", ansi.Truncate(body, width, "…"), width, 1, focused, footer)
 }
 
 // dirPane draws the path filter, which is inside the chosen space.

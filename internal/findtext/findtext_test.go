@@ -27,9 +27,9 @@ func TestLinesMatchWhatContentShows(t *testing.T) {
 
 	assert.False(t, res.Truncated)
 	assert.Equal(t, []Line{
-		{Rel: "inbox/a.md", Index: 0, Text: "first"},
-		{Rel: "inbox/a.md", Index: 2, Text: "second"},
-		{Rel: "inbox/a.md", Index: 3, Text: "third"},
+		{Rel: "inbox/a.md", Kind: store.KindUnset, Index: 0, Text: "first"},
+		{Rel: "inbox/a.md", Kind: store.KindUnset, Index: 2, Text: "second"},
+		{Rel: "inbox/a.md", Kind: store.KindUnset, Index: 3, Text: "third"},
 	}, res.Lines, "blank lines are skipped but the index counts them")
 }
 
@@ -113,4 +113,28 @@ func TestWithoutFileDropsLinesOfNotesNamedSo(t *testing.T) {
 	assert.Equal(t, []Line{lines[1], lines[3], lines[4]}, got)
 	assert.Len(t, lines, 5, "the input is not changed")
 	assert.Equal(t, lines, WithoutFile(lines, ""), "an empty name drops nothing")
+}
+
+func TestLinesCarryTheKindOfTheirNote(t *testing.T) {
+	root := t.TempDir()
+	put(t, root, "inbox/f.md", "---\nkind: fact\n---\n\nsolid\n")
+	put(t, root, "inbox/n.md", "plain\n")
+	res := Lines(store.NewMarkdown(root), []string{"inbox/f.md", "inbox/n.md"})
+
+	require.Len(t, res.Lines, 2)
+	assert.Equal(t, store.KindFact, res.Lines[0].Kind)
+	assert.Equal(t, store.KindUnset, res.Lines[1].Kind)
+}
+
+func TestOfKindKeepsOnlyThatKind(t *testing.T) {
+	lines := []Line{
+		{Rel: "a.md", Kind: store.KindFact},
+		{Rel: "b.md", Kind: store.KindUnset},
+		{Rel: "c.md", Kind: store.KindFact},
+	}
+
+	assert.Equal(t, []Line{lines[0], lines[2]}, OfKind(lines, store.KindFact))
+	assert.Equal(t, []Line{lines[1]}, OfKind(lines, store.KindUnset))
+	assert.Empty(t, OfKind(lines, store.KindRumor))
+	assert.Len(t, lines, 3, "the input is not changed")
 }

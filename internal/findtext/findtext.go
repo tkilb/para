@@ -26,6 +26,8 @@ const MaxLines = maxLines
 type Line struct {
 	// Rel is the note's path relative to the notebook root.
 	Rel string
+	// Kind is the kind of the note, KindUnset when it has none.
+	Kind store.Kind
 	// Index is the line's position in the note as the Content panel shows it
 	// (properties hidden, surrounding newlines trimmed), counting blank lines.
 	Index int
@@ -77,7 +79,7 @@ func Lines(s store.Store, rels []string) Result {
 				res.Truncated = true
 				return res
 			}
-			res.Lines = append(res.Lines, Line{Rel: rel, Index: i, Text: cut(line)})
+			res.Lines = append(res.Lines, Line{Rel: rel, Kind: n.Kind, Index: i, Text: cut(line)})
 		}
 	}
 	return res
@@ -113,6 +115,17 @@ func WithoutFile(lines []Line, name string) []Line {
 	out := make([]Line, 0, len(lines))
 	for _, l := range lines {
 		if filepath.Base(l.Rel) != name {
+			out = append(out, l)
+		}
+	}
+	return out
+}
+
+// OfKind returns the lines of notes of kind k. The input is left as it is.
+func OfKind(lines []Line, k store.Kind) []Line {
+	var out []Line
+	for _, l := range lines {
+		if l.Kind == k {
 			out = append(out, l)
 		}
 	}

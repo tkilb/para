@@ -13,6 +13,7 @@ import (
 	"github.com/tkilb/para/internal/digest"
 	"github.com/tkilb/para/internal/findtext"
 	"github.com/tkilb/para/internal/search"
+	"github.com/tkilb/para/internal/store"
 )
 
 const (
@@ -58,11 +59,16 @@ type focus int
 const (
 	focusQuery focus = iota
 	focusSpace
+	focusKind
 	focusDir
 	focusCount
 )
 
 const allLabel = "All"
+
+// kindAll stands for every kind in the Kind filter. It is not a valid kind,
+// so it cannot clash with one the config adds.
+const kindAll store.Kind = ""
 
 // Model is the popup state. Methods return updated copies.
 type Model struct {
@@ -72,6 +78,8 @@ type Model struct {
 
 	spaces   []Space // spaces[0] is All
 	space    int
+	kinds    []store.Kind // kinds[0] is kindAll, the last is store.KindUnset
+	kind     int
 	dirField textinput.Model
 	focus    focus
 	capped   bool // the lines were cut at findtext.MaxLines
@@ -115,6 +123,7 @@ func New(lines []findtext.Line, capped bool, load Loader, opts Options) (Model, 
 			m.space = i
 		}
 	}
+	m.kinds = append(append([]store.Kind{kindAll}, store.Kinds()...), store.KindUnset)
 	m.scoped = m.scope()
 	return m, textinput.Blink
 }
@@ -125,6 +134,9 @@ func (m Model) scope() []findtext.Line {
 	lines := m.lines
 	if !m.showSource {
 		lines = findtext.WithoutFile(lines, digest.SourceFile)
+	}
+	if k := m.kinds[m.kind]; k != kindAll {
+		lines = findtext.OfKind(lines, k)
 	}
 	prefix := strings.TrimLeft(strings.TrimSpace(m.dirField.Value()), "/")
 	if d := m.spaces[m.space].Dir; d != "" {
@@ -170,6 +182,12 @@ func (m Model) pickSpace(delta int) Model {
 	return m.rescope()
 }
 
+// pickKind moves the chosen kind delta places, wrapping.
+func (m Model) pickKind(delta int) Model {
+	m.kind = (m.kind + delta + len(m.kinds)) % len(m.kinds)
+	return m.rescope()
+}
+
 // WithScreen tells the popup how big the terminal is, so paging and the
 // preview scroll move by what the panes show.
 func (m Model) WithScreen(w, h int) Model {
@@ -187,10 +205,10 @@ func (m Model) Chosen() (search.Hit, bool) {
 
 // Update handles a message: the arrows move through the lines, page up and
 // down move by a page, ctrl+d and ctrl+u scroll the preview, tab and
-// shift+tab move between the query, space and dir fields, ctrl+s shows or
+// shift+tab move between the query, space, kind and dir fields, ctrl+s shows or
 // hides the lines of _source.md files, enter chooses,
 // esc cancels, and anything else edits the field in focus (left, right, h, l
-// and space change the space).
+// and space change the space or kind).
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd, Outcome) {
 	if k, ok := msg.(tea.KeyMsg); ok {
 		switch k.String() {
@@ -223,12 +241,16 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd, Outcome) {
 			m, cmd := m.setFocus((m.focus + focusCount - 1) % focusCount)
 			return m, cmd, Pending
 		}
-		if m.focus == focusSpace {
+		if m.focus == focusSpace || m.focus == focusKind {
+			pick := m.pickSpace
+			if m.focus == focusKind {
+				pick = m.pickKind
+			}
 			switch k.String() {
 			case "left", "h", "shift+left":
-				return m.pickSpace(-1), nil, Pending
+				return pick(-1), nil, Pending
 			case "right", "l", " ", "shift+right":
-				return m.pickSpace(1), nil, Pending
+				return pick(1), nil, Pending
 			}
 			return m, nil, Pending
 		}
