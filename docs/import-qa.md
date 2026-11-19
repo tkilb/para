@@ -42,6 +42,7 @@ agent and never call a model.
 | 16 | Set `digest.command` to a name that does not exist, import | A notice: the agent command was not found, and the source is saved in an `IMPORT_…` folder (press `I` on it to retry). |
 | 17 | Import a page behind a login (a Confluence or Slack URL) | A notice: the page needs a login; paste its text or save it as a file. Nothing is written. |
 | 18 | Switch notebook (`B`) while an import runs | The finished import lands in the notebook it started in. The status message still names the folder, and the notebook now open is not reloaded or disturbed. |
+| 19 | Press `ctrl+/`, search a word that is only in an import's `_source.md`, then press `ctrl+s` | At first there are no matches and the hint reads `_source.md hidden`. After `ctrl+s` the transcript lines are listed and the hint reads `shown`; `ctrl+s` again hides them. Lines of other notes in the folder are listed either way. |
 
 ## Known limits
 

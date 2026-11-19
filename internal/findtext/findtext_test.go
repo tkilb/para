@@ -99,3 +99,18 @@ func TestUnderPathMatchesPrefixIgnoringCase(t *testing.T) {
 		assert.Equal(t, tt.want, UnderPath(tt.rel, tt.prefix), tt.rel+" "+tt.prefix)
 	}
 }
+
+func TestWithoutFileDropsLinesOfNotesNamedSo(t *testing.T) {
+	lines := []Line{
+		{Rel: "inbox/IMPORT_x/_source.md", Text: "a"},
+		{Rel: "inbox/IMPORT_x/notes.md", Text: "b"},
+		{Rel: "_source.md", Text: "c"},
+		{Rel: "inbox/my_source.md", Text: "d"},
+		{Rel: "inbox/_source.md/inner.md", Text: "e"},
+	}
+	got := WithoutFile(lines, "_source.md")
+
+	assert.Equal(t, []Line{lines[1], lines[3], lines[4]}, got)
+	assert.Len(t, lines, 5, "the input is not changed")
+	assert.Equal(t, lines, WithoutFile(lines, ""), "an empty name drops nothing")
+}

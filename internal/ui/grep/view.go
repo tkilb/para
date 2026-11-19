@@ -33,7 +33,7 @@ const (
 	beforeHit = 3
 	noQuery   = "(type to search)"
 	noMatch   = "(no matches)"
-	hint      = "enter open  tab filters  esc cancel"
+	hint      = "enter open  tab filters  ctrl+s _source.md %s  esc cancel"
 )
 
 // The popup's colors: the gruvbox-material palette of the Content panel.
@@ -129,7 +129,7 @@ func (m Model) listPane(width, height int) string {
 			lines = append(lines, listRow(m.res.Hits[i], width, i == m.cursor))
 		}
 	}
-	footer := panel.Footer{Left: hint, Tint: true}
+	footer := panel.Footer{Left: m.hint(), Tint: true}
 	if m.capped {
 		footer.Right = "first lines only"
 	} else if m.res.Truncated {
@@ -293,4 +293,13 @@ func clampSpans(spans [][2]int, width int, line string) [][2]int {
 		}
 	}
 	return out
+}
+
+// hint is the footer's key help, with whether _source.md files are searched.
+func (m Model) hint() string {
+	state := "hidden"
+	if m.showSource {
+		state = "shown"
+	}
+	return fmt.Sprintf(hint, state)
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/tkilb/para/internal/digest"
 	"github.com/tkilb/para/internal/findtext"
 	"github.com/tkilb/para/internal/search"
 )
@@ -74,7 +75,10 @@ type Model struct {
 	dirField textinput.Model
 	focus    focus
 	capped   bool // the lines were cut at findtext.MaxLines
-	load     Loader
+	// showSource lists the lines of import transcripts (_source.md), which
+	// are left out until ctrl+s turns them on.
+	showSource bool
+	load       Loader
 
 	res    search.Result
 	cursor int
@@ -118,15 +122,19 @@ func New(lines []findtext.Line, capped bool, load Loader, opts Options) (Model, 
 // scope returns the lines inside the chosen space and path filter. The path
 // is inside the space, or from the notebook root when the space is All.
 func (m Model) scope() []findtext.Line {
+	lines := m.lines
+	if !m.showSource {
+		lines = findtext.WithoutFile(lines, digest.SourceFile)
+	}
 	prefix := strings.TrimLeft(strings.TrimSpace(m.dirField.Value()), "/")
 	if d := m.spaces[m.space].Dir; d != "" {
 		prefix = d + "/" + prefix
 	}
 	if prefix == "" {
-		return m.lines
+		return lines
 	}
 	var out []findtext.Line
-	for _, l := range m.lines {
+	for _, l := range lines {
 		if findtext.UnderPath(l.Rel, prefix) {
 			out = append(out, l)
 		}
@@ -179,7 +187,8 @@ func (m Model) Chosen() (search.Hit, bool) {
 
 // Update handles a message: the arrows move through the lines, page up and
 // down move by a page, ctrl+d and ctrl+u scroll the preview, tab and
-// shift+tab move between the query, space and dir fields, enter chooses,
+// shift+tab move between the query, space and dir fields, ctrl+s shows or
+// hides the lines of _source.md files, enter chooses,
 // esc cancels, and anything else edits the field in focus (left, right, h, l
 // and space change the space).
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd, Outcome) {
@@ -204,6 +213,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd, Outcome) {
 			return m.scrollPreview(-m.pageRows() / 2), nil, Pending
 		case "ctrl+d":
 			return m.scrollPreview(m.pageRows() / 2), nil, Pending
+		case "ctrl+s":
+			m.showSource = !m.showSource
+			return m.rescope(), nil, Pending
 		case "tab":
 			m, cmd := m.setFocus((m.focus + 1) % focusCount)
 			return m, cmd, Pending

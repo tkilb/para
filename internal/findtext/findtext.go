@@ -103,3 +103,18 @@ func UnderPath(rel, prefix string) bool {
 	prefix = strings.ToLower(strings.TrimLeft(filepath.ToSlash(prefix), "/"))
 	return strings.HasPrefix(rel, prefix)
 }
+
+// WithoutFile returns lines without those of notes whose file name is name,
+// such as an import's _source.md. The input is left as it is.
+func WithoutFile(lines []Line, name string) []Line {
+	if name == "" {
+		return lines
+	}
+	out := make([]Line, 0, len(lines))
+	for _, l := range lines {
+		if filepath.Base(l.Rel) != name {
+			out = append(out, l)
+		}
+	}
+	return out
+}
