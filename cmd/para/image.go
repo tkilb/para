@@ -10,6 +10,7 @@ import (
 	"github.com/tkilb/para/internal/store"
 	"github.com/tkilb/para/internal/textsafe"
 	"github.com/tkilb/para/internal/ui/content"
+	"github.com/tkilb/para/internal/ui/kindstyle"
 	"github.com/tkilb/para/internal/ui/panel"
 	"github.com/tkilb/para/internal/ui/popup"
 )
@@ -48,18 +49,23 @@ func (m model) bundledImages(entry store.Entry) []string {
 	return names
 }
 
+// bundleTabMark starts the title of each image tab, the same diamond the note
+// row shows in PARA.
+const bundleTabMark = "❖"
+
 // bundleLabels are the Content tabs for the note shown: "Content" for the note
-// text, then one for each bundled image named for its file without ".png".
+// text, then one for each bundled image named for its file without ".png" and led by a diamond.
 // Where the title is too narrow for every name, the tabs that are not open
 // shrink to "C" and a number, and the open name is cut to fit.
 func (m model) bundleLabels() []panel.TabLabel {
 	if len(m.bundle) == 0 {
 		return nil
 	}
+	_, imageColor := kindstyle.ImageStyle() // the color of the IMG badge
 	labels := []panel.TabLabel{{Full: "Content", Short: "C"}}
 	for i, name := range m.bundle {
 		stem := textsafe.SingleLine(name[:len(name)-len(".png")])
-		labels = append(labels, panel.TabLabel{Full: stem, Short: strconv.Itoa(i + 1)})
+		labels = append(labels, panel.TabLabel{Full: bundleTabMark + stem, Short: strconv.Itoa(i + 1), MarkColor: imageColor})
 	}
 	return labels
 }

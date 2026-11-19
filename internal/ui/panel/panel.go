@@ -6,6 +6,7 @@ package panel
 
 import (
 	"strings"
+	"unicode/utf8"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
@@ -99,6 +100,9 @@ func firstFooter(footer []Footer) Footer {
 type Tab struct {
 	Label  string
 	Active bool
+	// MarkColor, when set, colors the first character of Label, a mark such
+	// as "❖" that stands apart from the name.
+	MarkColor lipgloss.Color
 }
 
 // FrameTabs is like Frame, but embeds a row of tabs in the title instead of
@@ -234,6 +238,20 @@ func topBorderTabs(number rune, tabs []Tab, width int, focused bool, lineStyle l
 
 // renderTabsBorder draws the top border line for tabs that fit the budget
 // columns left after the lead dashes and the prefix.
+// renderTabLabel draws a tab's label in style, with its first character in
+// MarkColor when that is set.
+func renderTabLabel(t Tab, style lipgloss.Style) string {
+	if t.MarkColor == "" || t.Label == "" {
+		return style.Render(t.Label)
+	}
+	_, size := utf8.DecodeRuneInString(t.Label)
+	mark := style.Foreground(t.MarkColor).Render(t.Label[:size])
+	if rest := t.Label[size:]; rest != "" {
+		return mark + style.Render(rest)
+	}
+	return mark
+}
+
 func renderTabsBorder(prefix string, shown []Tab, budget int, focused bool, lineStyle lipgloss.Style) string {
 	inactive := lipgloss.NewStyle()
 	active := lipgloss.NewStyle().Bold(true).Foreground(activeTabColor)
@@ -249,7 +267,7 @@ func renderTabsBorder(prefix string, shown []Tab, budget int, focused bool, line
 		if t.Active {
 			style = active
 		}
-		b.WriteString(style.Render(t.Label))
+		b.WriteString(renderTabLabel(t, style))
 	}
 	fill := max(budget-tabsWidth(shown), 0)
 	b.WriteString(lineStyle.Render(strings.Repeat("─", fill) + "╮"))

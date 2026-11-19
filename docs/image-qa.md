@@ -63,7 +63,7 @@ The agent import can stay off (`digest.enabled` unset) for every step here.
 | 26 | Put the cursor on a note with two bundled images (PARA focused) | The title of pane `[0]` reads `[0]-Content - diagram - whiteboard` (the image names), with `Content` highlighted. Content shows the note text. A note with no images shows `[0]-Content` as before. |
 | 27 | Press `[` or `]` with PARA focused | The PARA tab changes, not the Content tab. |
 | 28 | Press `→` | Focus moves to Content, and the status bar starts with `[ ] image tabs`. |
-| 29 | Press `]` | The first image's tab is highlighted and the image is drawn, scaled; the footer reads `1/2 name.png, W x H px, size`. |
+| 29 | Press `]` | The first image's tab, which starts with a `❖` in the `IMG` badge color, is highlighted and the image is drawn, scaled; the footer reads `1/2 name.png, W x H px, size`. |
 | 30 | Press `]` again, then once more | The second image's tab, then back to `Content` and the note text at the place you left it. |
 | 31 | Press `[` on the `Content` tab | It wraps to the last image (`[` and `]` wrap; `←` and `→` do not). |
 | 32 | `esc`, then move to another note and back | Focus is back in PARA; coming back, the `Content` tab is open. |

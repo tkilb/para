@@ -17,6 +17,9 @@ const (
 // it when there is no room, such as a number.
 type TabLabel struct {
 	Full, Short string
+	// MarkColor colors the first character of Full, when it is shown (see
+	// Tab). A Short form has no mark.
+	MarkColor lipgloss.Color
 }
 
 // FitTabs chooses the text of each tab so the row fits the title of a panel
@@ -39,6 +42,9 @@ func FitTabs(labels []TabLabel, active, width int) []Tab {
 		tabs := make([]Tab, len(labels))
 		for i, l := range labels {
 			tabs[i] = Tab{Label: text(i, l), Active: i == active}
+			if tabs[i].Label == l.Full {
+				tabs[i].MarkColor = l.MarkColor
+			}
 		}
 		return tabs
 	}
@@ -60,7 +66,8 @@ func FitTabs(labels []TabLabel, active, width int) []Tab {
 		short[active].Label = ansi.Truncate(labels[active].Full, room, "…")
 		return short
 	}
-	return []Tab{{Label: ansi.Truncate(labels[active].Full, max(budget, 1), "…"), Active: true}}
+	a := labels[active]
+	return []Tab{{Label: ansi.Truncate(a.Full, max(budget, 1), "…"), Active: true, MarkColor: a.MarkColor}}
 }
 
 // FrameFittedTabs is like FrameTabs for tabs already fitted to the width by
