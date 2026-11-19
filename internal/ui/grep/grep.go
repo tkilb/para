@@ -164,6 +164,7 @@ func (m Model) acceptHint() Model {
 	}
 	typed := strings.TrimLeft(strings.TrimSpace(m.dirField.Value()), "/")
 	m.dirField.SetValue(typed[:strings.LastIndex(typed, "/")+1] + names[m.hintSel] + "/")
+	m.dirField.CursorEnd() // SetValue keeps the old position when it still fits
 	m.hintSel = -1
 	return m.rescope()
 }
@@ -171,6 +172,7 @@ func (m Model) acceptHint() Model {
 // setDir replaces the dir field and searches again.
 func (m Model) setDir(v string) Model {
 	m.dirField.SetValue(v)
+	m.dirField.CursorEnd()
 	m.hintSel = -1
 	return m.rescope()
 }
