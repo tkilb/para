@@ -154,6 +154,10 @@ func noteRels(lines []findtext.Line) []string {
 // Focus is the field the keys edit.
 func (b Bar) Focus() Field { return b.focus }
 
+// Since is the choice of the Modified since filter, such as "Anytime" or
+// "7 days", for the owner to show beside its list.
+func (b Bar) Since() string { return sinceOptions[b.since].Label }
+
 // Scope returns the records that pass every filter. The path is inside the
 // space, or from the notebook root when the space is All.
 func (b Bar) Scope() []findtext.Line {

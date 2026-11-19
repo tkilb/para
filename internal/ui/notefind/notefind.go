@@ -93,7 +93,7 @@ func (m Model) Update(msg tea.Msg, screenH int) (Model, tea.Cmd, Outcome) {
 // above the picker, as wide as it is.
 func (m Model) View(screenW, screenH int) string {
 	h := screenH - filterbar.RowHeight
-	list := m.picker.WithScreenHeight(h).View(screenW, h)
+	list := m.picker.WithScreenHeight(h).WithTopRight(m.bar.Since()).View(screenW, h)
 	width := m.picker.BoxWidth(screenW)
 	left := width / 2
 	view := lipgloss.JoinVertical(lipgloss.Left, m.bar.Row(left, width-left), list)

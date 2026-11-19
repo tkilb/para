@@ -76,8 +76,18 @@ func InnerSize(outerWidth, outerHeight int) (width, height int) {
 // An optional Footer (e.g. a path on the left and a "3/10" scroll position
 // on the right) is embedded in the bottom border line. Only the first is used.
 func Frame(title, body string, width, height int, focused bool, footer ...Footer) string {
+	return FrameTopRight(title, "", body, width, height, focused, footer...)
+}
+
+// FrameTopRight is like Frame, with topRight embedded in the top border line
+// near the right corner, such as a setting that applies to the whole list. It
+// is dropped when it does not fit beside the title.
+func FrameTopRight(title, topRight, body string, width, height int, focused bool, footer ...Footer) string {
 	lineStyle := lipgloss.NewStyle().Foreground(borderColor(focused))
 	top := topBorder(title, width, focused, lineStyle)
+	if topRight != "" {
+		top = topBorderRight(title, topRight, width, focused, lineStyle)
+	}
 	return frameBody(top, firstFooter(footer), body, width, height, lineStyle)
 }
 
@@ -162,6 +172,29 @@ func topBorder(title string, width int, focused bool, lineStyle lipgloss.Style) 
 	b.WriteString(lineStyle.Render("╭" + strings.Repeat("─", leadDashes)))
 	b.WriteString(TitleStyle(focused).Render(label))
 	b.WriteString(lineStyle.Render(strings.Repeat("─", fill) + "╮"))
+	return b.String()
+}
+
+// topBorderRight is topBorder with right near the right corner, one dash
+// before it, e.g. "╭─Grep──────────7 days─╮". A right that does not fit with
+// at least a dash between it and the title is left out.
+func topBorderRight(title, right string, width int, focused bool, lineStyle lipgloss.Style) string {
+	const cornerDashes = 1
+	label := titleLabel(title)
+	if len(label) > width-leadDashes {
+		label = label[:max(width-leadDashes, 0)]
+	}
+	rightWidth := ansi.StringWidth(right)
+	fill := width - leadDashes - len(label) - rightWidth - cornerDashes
+	if fill < 1 {
+		return topBorder(title, width, focused, lineStyle)
+	}
+	var b strings.Builder
+	b.WriteString(lineStyle.Render("╭" + strings.Repeat("─", leadDashes)))
+	b.WriteString(TitleStyle(focused).Render(label))
+	b.WriteString(lineStyle.Render(strings.Repeat("─", fill)))
+	b.WriteString(TitleStyle(focused).Render(right))
+	b.WriteString(lineStyle.Render(strings.Repeat("─", cornerDashes) + "╮"))
 	return b.String()
 }
 

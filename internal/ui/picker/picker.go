@@ -117,6 +117,8 @@ type Model struct {
 	// pane titled previewName.
 	preview     bool
 	previewName string
+	// topRight is shown in the top border of the list, near its right corner.
+	topRight string
 }
 
 // New returns a picker over items, listed in the given order until the user
@@ -151,6 +153,13 @@ func (m Model) SetFocused(on bool) (Model, tea.Cmd) {
 		return m, nil
 	}
 	return m, m.field.Focus()
+}
+
+// WithTopRight shows text in the top border of the list, near its right
+// corner.
+func (m Model) WithTopRight(text string) Model {
+	m.topRight = text
+	return m
 }
 
 // BoxWidth is the outer width of the box View draws on a terminal
@@ -395,15 +404,15 @@ func (m Model) View(screenWidth, screenHeight int) string {
 		footer.Right = strings.Join([]string{itoa(m.cursor + 1), itoa(len(m.matches))}, "/")
 	}
 	if !m.preview && !m.tall {
-		return panel.Frame(m.title, strings.Join(lines, "\n"), inner, len(lines), true, footer)
+		return panel.FrameTopRight(m.title, m.topRight, strings.Join(lines, "\n"), inner, len(lines), true, footer)
 	}
 	for len(lines) < rows+1 {
 		lines = append(lines, "")
 	}
 	if !m.preview {
-		return panel.Frame(m.title, strings.Join(lines, "\n"), inner, len(lines), true, footer)
+		return panel.FrameTopRight(m.title, m.topRight, strings.Join(lines, "\n"), inner, len(lines), true, footer)
 	}
-	list := panel.Frame(m.title, strings.Join(lines, "\n"), inner, len(lines), true, footer)
+	list := panel.FrameTopRight(m.title, m.topRight, strings.Join(lines, "\n"), inner, len(lines), true, footer)
 	_, previewRows := stackedRows(screenHeight)
 	return lipgloss.JoinVertical(lipgloss.Left, list, "", m.previewPane(inner, previewRows))
 }

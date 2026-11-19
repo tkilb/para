@@ -102,7 +102,7 @@ func (m Model) listPane(width, height int) string {
 	} else if m.res.Truncated {
 		footer.Right = fmt.Sprintf("first %d of %d", len(m.res.Hits), m.res.Total)
 	}
-	return panel.Frame("Grep", strings.Join(lines, "\n"), width, height, m.bar.Focus() == filterbar.FieldQuery, footer)
+	return panel.FrameTopRight("Grep", m.bar.Since(), strings.Join(lines, "\n"), width, height, m.bar.Focus() == filterbar.FieldQuery, footer)
 }
 
 // listRow draws one hit: the path (folders dim and italic, the note's name
