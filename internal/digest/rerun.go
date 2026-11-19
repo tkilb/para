@@ -74,7 +74,7 @@ func Rerun(ctx context.Context, s store.Store, now time.Time, kind store.Kind, d
 	if err != nil {
 		return Result{}, err
 	}
-	if len(usableNotes(d.Notes)) == 0 && len(cleanActions(d.Actions)) == 0 && len(cleanFacts(d.Facts)) == 0 {
+	if len(usableNotes(d.Notes)) == 0 && len(cleanActions(d.Actions)) == 0 && len(cleanFacts(d.Facts)) == 0 && cleanTakeaways(d.Takeaways).Empty() {
 		return Result{}, ErrEmpty
 	}
 	trashed, err := trashGenerated(s, rel)

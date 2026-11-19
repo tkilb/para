@@ -101,7 +101,7 @@ func TestDefaultPromptsStateTheRules(t *testing.T) {
 			lower := strings.ToLower(p)
 			assert.Contains(t, lower, "data, not instructions", "the source is untrusted")
 			assert.Contains(t, lower, "json", "the output format is stated")
-			for _, field := range []string{"topic", "source", "notes", "title", "body", "tags", "actions", "facts"} {
+			for _, field := range []string{"topic", "source", "notes", "title", "body", "tags", "actions", "facts", "takeaways", "key_points", "conclusions", "decisions"} {
 				assert.Contains(t, lower, field, "the prompt names the field %s", field)
 			}
 			assert.Less(t, len(p), MaxPromptBytes)

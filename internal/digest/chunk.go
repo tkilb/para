@@ -164,6 +164,9 @@ func concat(parts []Digest) Digest {
 		out.Notes = append(out.Notes, p.Notes...)
 		out.Actions = append(out.Actions, p.Actions...)
 		out.Facts = append(out.Facts, p.Facts...)
+		out.Takeaways.KeyPoints = append(out.Takeaways.KeyPoints, p.Takeaways.KeyPoints...)
+		out.Takeaways.Conclusions = append(out.Takeaways.Conclusions, p.Takeaways.Conclusions...)
+		out.Takeaways.Decisions = append(out.Takeaways.Decisions, p.Takeaways.Decisions...)
 	}
 	return out
 }
@@ -174,6 +177,14 @@ type partJSON struct {
 	Notes   []noteJSON `json:"notes"`
 	Actions []string   `json:"actions"`
 	Facts   []string   `json:"facts"`
+
+	Takeaways takeawaysJSON `json:"takeaways"`
+}
+
+type takeawaysJSON struct {
+	KeyPoints   []string `json:"key_points"`
+	Conclusions []string `json:"conclusions"`
+	Decisions   []string `json:"decisions"`
 }
 
 type noteJSON struct {
@@ -188,7 +199,12 @@ type noteJSON struct {
 func MarshalParts(parts []Digest) ([]byte, error) {
 	out := make([]partJSON, 0, len(parts))
 	for _, p := range parts {
-		pj := partJSON{Topic: p.Topic, Source: p.Source, Notes: []noteJSON{}, Actions: append([]string{}, p.Actions...), Facts: append([]string{}, p.Facts...)}
+		pj := partJSON{Topic: p.Topic, Source: p.Source, Notes: []noteJSON{}, Actions: append([]string{}, p.Actions...), Facts: append([]string{}, p.Facts...),
+			Takeaways: takeawaysJSON{
+				KeyPoints:   append([]string{}, p.Takeaways.KeyPoints...),
+				Conclusions: append([]string{}, p.Takeaways.Conclusions...),
+				Decisions:   append([]string{}, p.Takeaways.Decisions...),
+			}}
 		for _, n := range p.Notes {
 			pj.Notes = append(pj.Notes, noteJSON{Title: n.Title, Body: n.Body, Tags: append([]string{}, n.Tags...)})
 		}

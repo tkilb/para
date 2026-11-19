@@ -10,5 +10,10 @@ const Schema = `{"type":"object","properties":{` +
 	`"title":{"type":"string"},"body":{"type":"string"},"tags":{"type":"array","items":{"type":"string"}}},` +
 	`"required":["title","body","tags"]}},` +
 	`"actions":{"type":"array","items":{"type":"string"}},` +
-	`"facts":{"type":"array","items":{"type":"string"}}},` +
-	`"required":["topic","source","notes","actions","facts"]}`
+	`"facts":{"type":"array","items":{"type":"string"}},` +
+	`"takeaways":{"type":"object","properties":{` +
+	`"key_points":{"type":"array","items":{"type":"string"}},` +
+	`"conclusions":{"type":"array","items":{"type":"string"}},` +
+	`"decisions":{"type":"array","items":{"type":"string"}}},` +
+	`"required":["key_points","conclusions","decisions"]}},` +
+	`"required":["topic","source","notes","actions","facts","takeaways"]}`

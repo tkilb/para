@@ -20,6 +20,12 @@ type rawDigest struct {
 	Notes   []rawNote `json:"notes"`
 	Actions []string  `json:"actions"`
 	Facts   []string  `json:"facts"`
+
+	Takeaways struct {
+		KeyPoints   []string `json:"key_points"`
+		Conclusions []string `json:"conclusions"`
+		Decisions   []string `json:"decisions"`
+	} `json:"takeaways"`
 }
 
 type rawNote struct {
@@ -52,15 +58,20 @@ func Parse(data []byte, sources []string) (Digest, error) {
 		Notes:   cleanNotes(raw.Notes),
 		Actions: cleanActions(raw.Actions),
 		Facts:   cleanFacts(raw.Facts),
+		Takeaways: cleanTakeaways(Takeaways{
+			KeyPoints:   raw.Takeaways.KeyPoints,
+			Conclusions: raw.Takeaways.Conclusions,
+			Decisions:   raw.Takeaways.Decisions,
+		}),
 	}
-	if len(d.Notes) == 0 && len(d.Actions) == 0 && len(d.Facts) == 0 {
+	if len(d.Notes) == 0 && len(d.Actions) == 0 && len(d.Facts) == 0 && d.Takeaways.Empty() {
 		return Digest{}, ErrEmpty
 	}
 	return d, nil
 }
 
 // cleanName makes text a safe file name, with no leading underscore: files
-// the writer owns, _source.md, _actions.md and _facts.md, start with one.
+// the writer owns, _source.md, _actions.md, _facts.md and _takeaways.md, start with one.
 func cleanName(text string) string {
 	name := store.CleanTitle(textsafe.SingleLine(text))
 	return strings.TrimLeft(name, "_ ")
@@ -135,6 +146,14 @@ func cleanActions(raw []string) []string {
 
 func cleanFacts(raw []string) []string {
 	return cleanLines(raw, MaxFacts, MaxFactRunes)
+}
+
+func cleanTakeaways(t Takeaways) Takeaways {
+	return Takeaways{
+		KeyPoints:   cleanLines(t.KeyPoints, MaxTakeaways, MaxTakeawayRunes),
+		Conclusions: cleanLines(t.Conclusions, MaxTakeaways, MaxTakeawayRunes),
+		Decisions:   cleanLines(t.Decisions, MaxTakeaways, MaxTakeawayRunes),
+	}
 }
 
 // cleanLines keeps up to max non-empty single-line items, each cut to runes.

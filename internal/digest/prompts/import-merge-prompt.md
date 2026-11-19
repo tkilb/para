@@ -7,9 +7,10 @@ Rules:
 - Do not add anything that is not in the partial results, and do not drop real content.
 - Keep action items only in the actions list, never inside a note. Merge duplicate actions and keep the owner and date when given.
 - Merge duplicate facts in the facts list, keeping each one short and standalone. Facts may also appear in notes.
+- Merge duplicate takeaways within key_points, conclusions and decisions, keeping each one short and standalone and the owner or reason of a decision when given. Takeaways may also appear in notes and facts.
 - Keep the same note format: a short plain title with no slashes, colons or brackets, a Markdown body, and two to five lowercase tags using only letters, digits, hyphens, underscores and slashes.
 - topic: two to six words naming the whole source.
 - source: exactly one of meeting, confluence, slack, document, adhoc, taken from the partial results.
 
 Reply with JSON only, with no text before or after it, in this shape:
-{"topic": "...", "source": "...", "notes": [{"title": "...", "body": "...", "tags": ["..."]}], "actions": ["..."], "facts": ["..."]}
+{"topic": "...", "source": "...", "notes": [{"title": "...", "body": "...", "tags": ["..."]}], "actions": ["..."], "facts": ["..."], "takeaways": {"key_points": ["..."], "conclusions": ["..."], "decisions": ["..."]}}

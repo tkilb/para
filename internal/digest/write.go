@@ -26,6 +26,9 @@ const (
 	ActionsFile = "_actions.md"
 	// FactsFile holds the facts, and exists only when there are some.
 	FactsFile = "_facts.md"
+	// TakeawaysFile holds the key points, conclusions and decisions, and
+	// exists only when there are some.
+	TakeawaysFile = "_takeaways.md"
 
 	importKindName = "import"
 	inboxDir       = "inbox"
@@ -117,7 +120,7 @@ func (f *Folder) Action() undo.Action {
 }
 
 // Finish writes the checked digest d into the folder: one file per note,
-// _actions.md when there are action items, _facts.md when there are facts, and the source set to the one the
+// _actions.md when there are action items, _facts.md when there are facts, _takeaways.md when there are takeaways, and the source set to the one the
 // agent judged (a web import keeps its address). It then renames the folder
 // to the agent's topic, or leaves its name when there is none or the rename
 // fails. A note without a usable title or text is skipped. Nothing is
@@ -131,7 +134,8 @@ func (f *Folder) Finish(d Digest) (Result, error) {
 		return Result{}, ErrFinished
 	}
 	notes, actions, facts := usableNotes(d.Notes), cleanActions(d.Actions), cleanFacts(d.Facts)
-	if len(notes) == 0 && len(actions) == 0 && len(facts) == 0 {
+	takeaways := cleanTakeaways(d.Takeaways)
+	if len(notes) == 0 && len(actions) == 0 && len(facts) == 0 && takeaways.Empty() {
 		return Result{}, ErrEmpty
 	}
 	f.done = true
@@ -153,7 +157,7 @@ func (f *Folder) Finish(d Digest) (Result, error) {
 	finish := func(err error) (Result, error) {
 		return Result{Rel: f.Rel, Files: files, Action: f.Action(), KindMissing: f.kind == store.KindUnset, Warnings: warnings}, err
 	}
-	taken := map[string]bool{strings.ToLower(SourceFile): true, strings.ToLower(ActionsFile): true, strings.ToLower(FactsFile): true}
+	taken := map[string]bool{strings.ToLower(SourceFile): true, strings.ToLower(ActionsFile): true, strings.ToLower(FactsFile): true, strings.ToLower(TakeawaysFile): true}
 	for _, n := range notes {
 		name := freeName(intake.Name(n.Title), taken)
 		data, err := store.IntakeNote(name, f.kind, src, f.now.Format(dayLayout), n.Body+"\n", n.Tags)
@@ -168,11 +172,12 @@ func (f *Folder) Finish(d Digest) (Result, error) {
 	for _, l := range []struct {
 		name  string
 		items []string
-	}{{ActionsFile, actions}, {FactsFile, facts}} {
-		if len(l.items) == 0 {
+		body  string
+	}{{ActionsFile, actions, bulletList(actions)}, {FactsFile, facts, bulletList(facts)}, {TakeawaysFile, nil, takeawaysBody(takeaways)}} {
+		if len(l.items) == 0 && l.body == "" {
 			continue
 		}
-		data, err := store.IntakeNote(l.name, f.kind, src, f.now.Format(dayLayout), bulletList(l.items), nil)
+		data, err := store.IntakeNote(l.name, f.kind, src, f.now.Format(dayLayout), l.body, nil)
 		if err == nil {
 			err = f.create(l.name, data)
 		}
@@ -330,4 +335,18 @@ func bulletList(items []string) string {
 // hasFolderPrefix reports whether name starts with FolderPrefix, ignoring case.
 func hasFolderPrefix(name string) bool {
 	return len(name) >= len(FolderPrefix) && strings.EqualFold(name[:len(FolderPrefix)], FolderPrefix)
+}
+
+// takeawaysBody writes each section that has items under its heading.
+func takeawaysBody(t Takeaways) string {
+	var sections []string
+	for _, s := range []struct {
+		heading string
+		items   []string
+	}{{"Key points", t.KeyPoints}, {"Conclusions", t.Conclusions}, {"Decisions", t.Decisions}} {
+		if len(s.items) > 0 {
+			sections = append(sections, "## "+s.heading+"\n\n"+bulletList(s.items))
+		}
+	}
+	return strings.Join(sections, "\n")
 }
