@@ -1,5 +1,6 @@
-// Package attach reads an image from the system clipboard and stores it as a
-// PNG file in the notebook. It never echoes clipboard bytes or paths in an
+// Package attach reads an image (or the text of an SVG) from the system
+// clipboard or a file and stores it in the notebook: a PNG for a raster image,
+// the SVG unchanged for an SVG. It never echoes clipboard bytes or paths in an
 // error, because errors are shown in the status bar.
 package attach
 
@@ -17,6 +18,8 @@ import (
 var (
 	// ErrNoImage reports a clipboard that holds no image.
 	ErrNoImage = errors.New("the clipboard has no image")
+	// ErrNoText reports a clipboard that holds no text.
+	ErrNoText = errors.New("the clipboard has no text")
 	// ErrNoTool reports a missing clipboard program on Linux.
 	ErrNoTool = errors.New("install wl-clipboard (wl-paste) or xclip to paste images")
 	// ErrClipboard reports a clipboard that could not be read.
@@ -30,7 +33,7 @@ const maxRaw = 48 << 20
 // Runner runs a program and returns its standard output.
 type Runner func(ctx context.Context, name string, args ...string) ([]byte, error)
 
-// Clipboard reads an image from the system clipboard. Its fields exist so
+// Clipboard reads an image or text from the system clipboard. Its fields exist so
 // tests can replace the system; NewClipboard fills them for real use.
 type Clipboard struct {
 	GOOS     string
@@ -44,18 +47,43 @@ func NewClipboard() Clipboard {
 	return Clipboard{GOOS: runtime.GOOS, Getenv: os.Getenv, LookPath: exec.LookPath, Run: execRun}
 }
 
-// imageTypes are the clipboard types para reads, best first. A type other than
-// PNG is converted to PNG afterwards.
-var imageTypes = []string{"image/png", "image/jpeg", "image/webp", "image/avif"}
+// imageTypes are the clipboard types para reads as an image, best first. A
+// raster type other than PNG is converted to PNG afterwards; an SVG is kept.
+var imageTypes = []string{"image/png", "image/jpeg", "image/webp", "image/avif", "image/svg+xml"}
+
+// textTypes are the clipboard types para reads as text, best first. The first
+// two are what Wayland offers, the last two what X11 offers.
+var textTypes = []string{"text/plain;charset=utf-8", "text/plain", "UTF8_STRING", "STRING"}
+
+// macTextArgs make pbpaste print the plain text on the clipboard.
+var macTextArgs = []string{"-Prefer", "txt"}
+
+// Text returns the plain text on the clipboard. An SVG copied from an editor
+// arrives this way, not as image data.
+func (c Clipboard) Text(ctx context.Context) (string, error) {
+	switch c.GOOS {
+	case "darwin":
+		out, err := c.Run(ctx, "pbpaste", macTextArgs...)
+		if err != nil {
+			return "", ErrClipboard
+		}
+		return string(out), nil
+	case "linux":
+		out, err := c.linuxRead(ctx, textTypes, ErrNoText)
+		return string(out), err
+	}
+	return "", ErrClipboard
+}
 
 // Image returns the bytes of the image on the clipboard, in whatever supported
-// format the clipboard offers. The caller converts them to PNG.
+// format the clipboard offers. The caller converts a raster image to PNG and
+// keeps an SVG as it is.
 func (c Clipboard) Image(ctx context.Context) ([]byte, error) {
 	switch c.GOOS {
 	case "darwin":
 		return c.macImage(ctx)
 	case "linux":
-		return c.linuxImage(ctx)
+		return c.linuxRead(ctx, imageTypes, ErrNoImage)
 	}
 	return nil, ErrClipboard
 }
@@ -111,10 +139,11 @@ var (
 	}
 )
 
-// linuxImage uses wl-paste in a Wayland session and xclip in an X11 one. A
-// Wayland session falls back to xclip when wl-paste is missing and XWayland
-// offers a display.
-func (c Clipboard) linuxImage(ctx context.Context) ([]byte, error) {
+// linuxRead reads the best of types from the clipboard, and reports none when
+// the clipboard offers none of them. It uses wl-paste in a Wayland session and
+// xclip in an X11 one. A Wayland session falls back to xclip when wl-paste is
+// missing and XWayland offers a display.
+func (c Clipboard) linuxRead(ctx context.Context, types []string, none error) ([]byte, error) {
 	var candidates []linuxTool
 	if c.Getenv("WAYLAND_DISPLAY") != "" {
 		candidates = append(candidates, wlPaste)
@@ -127,38 +156,38 @@ func (c Clipboard) linuxImage(ctx context.Context) ([]byte, error) {
 	}
 	for _, tool := range candidates {
 		if _, err := c.LookPath(tool.name); err == nil {
-			return c.readWith(ctx, tool)
+			return c.readWith(ctx, tool, types, none)
 		}
 	}
 	return nil, ErrNoTool
 }
 
-func (c Clipboard) readWith(ctx context.Context, tool linuxTool) ([]byte, error) {
+func (c Clipboard) readWith(ctx context.Context, tool linuxTool, types []string, none error) ([]byte, error) {
 	listing, err := c.Run(ctx, tool.name, tool.list...)
 	if err != nil {
 		return nil, ErrClipboard
 	}
-	mime := pickType(string(listing))
+	mime := pickType(string(listing), types)
 	if mime == "" {
-		return nil, ErrNoImage
+		return nil, none
 	}
 	data, err := c.Run(ctx, tool.name, tool.read(mime)...)
 	if err != nil {
 		return nil, ErrClipboard
 	}
 	if len(data) == 0 {
-		return nil, ErrNoImage
+		return nil, none
 	}
 	return data, nil
 }
 
-// pickType returns the best supported image type in a newline-separated list.
-func pickType(listing string) string {
+// pickType returns the best of types that a newline-separated list offers.
+func pickType(listing string, types []string) string {
 	offered := map[string]bool{}
 	for _, line := range strings.Split(listing, "\n") {
 		offered[strings.TrimSpace(line)] = true
 	}
-	for _, t := range imageTypes {
+	for _, t := range types {
 		if offered[t] {
 			return t
 		}

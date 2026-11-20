@@ -74,7 +74,7 @@ func (m model) openImportPrompt() (model, tea.Cmd) {
 	enabled := m.digest.Enabled
 	label := "Blank: clipboard · URL: web page · else: file, or an image (Tab completes)"
 	if !enabled {
-		label = "Blank: clipboard image · else: an image file (text import is off) (Tab completes)"
+		label = "Blank: clipboard image or SVG text · else: an image file (text import is off) (Tab completes)"
 	}
 	in, cmd := m.openInput(&para.Prompt{Title: "Import", Label: label})
 	clipImage, hasClipImage := attach.ProbeClipboard(context.Background(), m.imageClip)
@@ -99,7 +99,7 @@ func (m model) openImportPrompt() (model, tea.Cmd) {
 
 // startImport begins an import of what was typed: the source is read and
 // the agent run in the background. An image, from the clipboard or a file, is
-// instead saved at once as a PNG in the folder PARA shows.
+// instead saved at once in the folder PARA shows: a PNG, or an SVG as it is.
 func (m model) startImport(text, inbox string) (model, tea.Cmd) {
 	// An image is saved as it is, without the agent.
 	if res, handled, err := attach.Import(context.Background(), m.store, m.imageClip, m.para.Dir(), text, inbox, time.Now()); handled {

@@ -56,7 +56,8 @@ func looksLikeXML(data []byte) bool {
 }
 
 // checkSVG walks every token of data. It returns ErrUnsupported when the root
-// element is not an svg in the SVG namespace (or the encoding is not UTF-8),
+// element is not an svg (or the encoding is not UTF-8), ErrNoNamespace (which
+// wraps ErrUnsupported) when it is an svg outside the SVG namespace,
 // ErrCorrupt when the XML is broken, and ErrUnsafe for anything the policy
 // refuses.
 func checkSVG(data []byte) error {
@@ -121,8 +122,11 @@ func (w *svgWalk) start(el xml.StartElement) error {
 	if w.closed || (w.depth == 0 && w.seenRoot) {
 		return ErrCorrupt
 	}
-	if !w.seenRoot && (el.Name.Local != svgRoot || el.Name.Space != svgNS) {
+	if !w.seenRoot && el.Name.Local != svgRoot {
 		return ErrUnsupported
+	}
+	if !w.seenRoot && el.Name.Space != svgNS {
+		return ErrNoNamespace
 	}
 	w.seenRoot = true
 	w.depth++

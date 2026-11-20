@@ -17,9 +17,10 @@ const (
 	maxNameTries = 1000
 )
 
-// Source supplies the image on the clipboard.
+// Source supplies the clipboard: an image, or text that may be an SVG.
 type Source interface {
 	Image(ctx context.Context) ([]byte, error)
+	Text(ctx context.Context) (string, error)
 }
 
 // Result describes a saved image.

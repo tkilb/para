@@ -17,13 +17,17 @@ import (
 	"github.com/tkilb/para/internal/store"
 )
 
-// fakeSource is a clipboard that returns fixed bytes.
+// fakeSource is a clipboard that returns fixed image bytes and fixed text.
 type fakeSource struct {
-	data []byte
-	err  error
+	data    []byte
+	err     error
+	text    string
+	textErr error
 }
 
 func (f fakeSource) Image(context.Context) ([]byte, error) { return f.data, f.err }
+
+func (f fakeSource) Text(context.Context) (string, error) { return f.text, f.textErr }
 
 func tinyPNG(t *testing.T) []byte {
 	t.Helper()

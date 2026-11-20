@@ -1,11 +1,8 @@
 package attach
 
 import (
-	"bytes"
 	"context"
-	"fmt"
-	"image"
-	"os"
+	"errors"
 	"path/filepath"
 	"strings"
 	"time"
@@ -17,9 +14,11 @@ import (
 )
 
 // Import handles what was typed into the import box when it is an image. A
-// blank input is the clipboard: when it holds an image, the image is saved.
-// Anything else is a file path, and an image file (PNG, JPEG, WebP or AVIF) is
-// converted to PNG and saved. The image goes into dir (relative to the
+// blank input is the clipboard: when it holds an image, or text that is an SVG
+// document, it is saved. Anything else is a file path, and an image file (PNG,
+// JPEG, WebP, AVIF or SVG) is saved: a raster image converted to PNG, an SVG
+// unchanged once it passes the safety check. The kind is decided from the
+// content, not the file name. The image goes into dir (relative to the
 // notebook root), named for the file, or for the moment when it came from the
 // clipboard.
 //
@@ -48,14 +47,56 @@ func importClipboard(ctx context.Context, s store.Store, clip Source, dir string
 	defer cancel()
 	raw, err := clip.Image(ctx)
 	if err != nil {
-		return Result{}, false, nil // no image there: the text import takes over
+		return importClipboardText(ctx, s, clip, dir, now)
 	}
-	data, err := imgfmt.ToPNG(raw)
+	data, ext, err := imgfmt.Prepare(raw)
 	if err != nil {
 		return Result{}, true, err
 	}
-	res, err := save(s, dir, now.Format(nameLayout), store.PNGExt, data)
+	res, err := save(s, dir, now.Format(nameLayout), ext, data)
 	return res, true, err
+}
+
+// importClipboardText saves the clipboard text when it is an SVG document. It
+// does not handle any other text, so the text import takes over.
+func importClipboardText(ctx context.Context, s store.Store, clip Source, dir string, now time.Time) (Result, bool, error) {
+	text, err := clip.Text(ctx)
+	if err != nil {
+		return Result{}, false, nil
+	}
+	data, ext, handled, err := svgFromText(text)
+	if !handled || err != nil {
+		return Result{}, handled, err
+	}
+	res, err := save(s, dir, now.Format(nameLayout), ext, data)
+	return res, true, err
+}
+
+// svgFromText applies to clipboard text the same gate imgfmt.Prepare applies to
+// bytes: text that opens a tag, after a byte order mark and white space, is
+// checked. A valid SVG is handled and returned with its extension; an unsafe
+// one is handled with imgfmt.ErrUnsafe. Every other result, including a
+// damaged, too large or unsupported document, is not handled, so the text
+// import takes over.
+func svgFromText(text string) (data []byte, ext string, handled bool, err error) {
+	if !textOpensTag(text) {
+		return nil, "", false, nil
+	}
+	data, ext, err = imgfmt.Prepare([]byte(text))
+	switch {
+	case err == nil:
+		return data, ext, true, nil
+	case errors.Is(err, imgfmt.ErrUnsafe):
+		return nil, "", true, err
+	}
+	return nil, "", false, nil
+}
+
+// textOpensTag reports whether text, after an optional byte order mark and white
+// space, starts with "<".
+func textOpensTag(text string) bool {
+	text = strings.TrimLeft(strings.TrimPrefix(text, "\ufeff"), " \t\r\n")
+	return strings.HasPrefix(text, "<")
 }
 
 func importFile(s store.Store, dir, path string, now time.Time) (Result, error) {
@@ -63,62 +104,20 @@ func importFile(s store.Store, dir, path string, now time.Time) (Result, error) 
 	if err != nil {
 		return Result{}, err
 	}
-	data, err := imgfmt.ToPNG(img.Data)
+	data, ext, err := imgfmt.Prepare(img.Data)
 	if err != nil {
 		return Result{}, err
 	}
-	return save(s, dir, fileStem(img.Name, now), store.PNGExt, data)
+	return save(s, dir, fileStem(img.Name, ext, now), ext, data)
 }
 
 // fileStem is the name for a saved image taken from a file name: the name
-// cleaned of control characters, or the date when nothing usable is left.
-func fileStem(name string, now time.Time) string {
-	clean, err := store.CleanRenamedImageName(textsafe.SingleLine(name), store.PNGExt)
+// cleaned of control characters, or the date when nothing usable is left. ext
+// is the extension the image is saved with.
+func fileStem(name, ext string, now time.Time) string {
+	clean, err := store.CleanRenamedImageName(textsafe.SingleLine(name), ext)
 	if err != nil {
 		return now.Format(nameLayout)
 	}
 	return strings.TrimSuffix(clean, filepath.Ext(clean))
-}
-
-// ProbeClipboard describes the image on the clipboard for the import box, and
-// reports false when there is none.
-func ProbeClipboard(ctx context.Context, clip Source) (string, bool) {
-	ctx, cancel := context.WithTimeout(ctx, pasteTimeout)
-	defer cancel()
-	raw, err := clip.Image(ctx)
-	if err != nil {
-		return "", false
-	}
-	cfg, _, err := image.DecodeConfig(bytes.NewReader(raw))
-	if err != nil {
-		return "", false
-	}
-	return fmt.Sprintf("image from the clipboard, %d x %d px, saved as a PNG", cfg.Width, cfg.Height), true
-}
-
-// ProbeFile describes the image file that input names for the import box, and
-// reports false when it is not a readable image file. It reads only the
-// file's header.
-func ProbeFile(input, inboxDir string) (string, bool) {
-	in := loader.Classify(input)
-	if in.Kind != loader.File {
-		return "", false
-	}
-	path := loader.ResolveFile(in.Value, inboxDir)
-	if !loader.IsImagePath(path) {
-		return "", false
-	}
-	f, err := os.Open(loader.ExpandHome(path))
-	if err != nil {
-		return "", false
-	}
-	defer f.Close()
-	if info, err := f.Stat(); err != nil || !info.Mode().IsRegular() {
-		return "", false
-	}
-	cfg, _, err := image.DecodeConfig(f)
-	if err != nil {
-		return "", false
-	}
-	return fmt.Sprintf("image file, %d x %d px, saved as a PNG", cfg.Width, cfg.Height), true
 }

@@ -1,6 +1,7 @@
-// Package imgfmt turns an image in a supported format into PNG, the only image
-// format para stores. It validates the bytes first, so a hostile or damaged
-// file is refused before it is decoded or written.
+// Package imgfmt prepares an image for storing: a raster image in a supported
+// format becomes PNG, and an SVG that passes the safety policy is kept as it
+// came. It validates the bytes first, so a hostile or damaged file is refused
+// before it is decoded or written.
 package imgfmt
 
 import (
@@ -24,8 +25,12 @@ const (
 )
 
 var (
-	// ErrUnsupported reports bytes that are not a PNG, JPEG, WebP or AVIF image.
-	ErrUnsupported = errors.New("not a PNG, JPEG, WebP or AVIF image")
+	// ErrUnsupported reports bytes that are not a PNG, JPEG, WebP, AVIF or SVG
+	// image.
+	ErrUnsupported = errors.New("not a PNG, JPEG, WebP, AVIF or SVG image")
+	// ErrNoNamespace reports an svg root element that is not in the SVG
+	// namespace. It wraps ErrUnsupported, so errors.Is matches both.
+	ErrNoNamespace = fmt.Errorf("%w: the svg element has no SVG namespace", ErrUnsupported)
 	// ErrCorrupt reports an image of a supported format that cannot be decoded.
 	ErrCorrupt = errors.New("the image is damaged")
 	// ErrTooLarge reports an image with too many bytes or pixels.

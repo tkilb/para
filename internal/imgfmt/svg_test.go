@@ -196,3 +196,17 @@ func TestToPNGStillRejectsSVG(t *testing.T) {
 	assert.ErrorIs(t, err, ErrUnsupported)
 	assert.Nil(t, out)
 }
+
+func TestErrUnsupportedNamesEveryFormat(t *testing.T) {
+	assert.Equal(t, "not a PNG, JPEG, WebP, AVIF or SVG image", ErrUnsupported.Error())
+}
+
+func TestPrepareTellsAMissingNamespaceApart(t *testing.T) {
+	_, _, err := Prepare([]byte(`<svg><rect/></svg>`))
+	assert.ErrorIs(t, err, ErrNoNamespace)
+	assert.ErrorIs(t, err, ErrUnsupported, "callers that test for ErrUnsupported still match")
+	for _, in := range []string{"<html><body/></html>", `<?xml version="1.0"?><note/>`} {
+		_, _, err := Prepare([]byte(in))
+		assert.NotErrorIs(t, err, ErrNoNamespace, in)
+	}
+}

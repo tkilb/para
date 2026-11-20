@@ -13,7 +13,7 @@ import (
 func TestIsImagePath(t *testing.T) {
 	tests := map[string]bool{
 		"a.png": true, "a.PNG": true, "dir/a.jpg": true, "a.jpeg": true, "a.JPEG": true,
-		"a.webp": true, "a.avif": true,
+		"a.webp": true, "a.avif": true, "a.svg": true, "a.SVG": true,
 		"a.gif": false, "a.md": false, "a.txt": false, "png": false, "": false, "a.png.md": false,
 	}
 	for path, want := range tests {

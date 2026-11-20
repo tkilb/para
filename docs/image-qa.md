@@ -113,4 +113,18 @@ The agent import can stay off (`digest.enabled` unset) for every step here.
 | 61 | `y`, move to another folder, `p` | A copy is made; pasting twice in one folder gives `name_1.png`, `name_2.png`. |
 | 62 | `d` on an image, then `u` | It goes to the trash, then returns. |
 | 63 | `ctrl+f` and `ctrl+/` | Images are not offered as notes and are not searched. |
-| 64 | Put `foo.png` and `foo.svg` in one folder by hand (importing an SVG with `I` does not exist yet) | Both rows show: the PNG row reads `foo` and the SVG row reads `foo.svg`. Remove one and the other reads `foo`. The same holds in the `❖` tabs of a note whose `.assets` folder holds both. `r` on either row still edits the stem. |
+| 64 | Put `foo.png` and `foo.svg` in one folder by hand (or import one with `I`) | Both rows show: the PNG row reads `foo` and the SVG row reads `foo.svg`. Remove one and the other reads `foo`. The same holds in the `❖` tabs of a note whose `.assets` folder holds both. `r` on either row still edits the stem. |
+
+## Importing SVG (`I`)
+
+The SVG is stored unchanged; the preview shows "cannot read the image" for it until chunk 3.
+
+| # | Step | Expect |
+| --- | --- | --- |
+| 65 | Put `logo.svg` (a plain shape, no script) in `inbox/`, press `I`, type its path | The hint says `SVG file, N bytes, saved as is`. Enter saves `logo.svg` in the folder PARA shows, byte for byte (`cmp` against the original); the original is untouched. The preview shows "cannot read the image" until SVG preview exists (chunk 3). |
+| 66 | Copy SVG source as text (from an editor or a browser view-source; leading white space, a comment or an `<?xml` line is fine), press `I` | The hint says `SVG from the clipboard, N bytes, saved as is`. Enter saves `YYYY-MM-DD HH-MM-SS.svg`, identical to the copied text. With the agent import off this still saves; copy ordinary text and the hint stays the text hint. |
+| 67 | Save an SVG that holds `<script>alert(1)</script>` as `evil.svg`, press `I`, type its path | The hint says `SVG file, not safe to store`. Enter shows an error ("the SVG image is not safe to store") with no path, and nothing is written, and it is not sent to the agent. Repeat with that source on the clipboard: the hint reads `SVG from the clipboard, not safe to store` and Enter refuses the same way. |
+| 68 | Copy the SVG source of a file with a broken tag (or text that opens with `<` but is not an SVG, such as HTML or an `<SVG` in capitals), press `I`, Enter | The hint is the usual text hint, not an SVG hint. Enter is not refused and writes no image: the text goes to the text import (with the agent import off, the import-off notice shows). Repeat with a damaged `broken.svg` file: the hint says `SVG file, damaged` and Enter shows "the image is damaged". |
+| 69 | Rename a copy of `logo.svg` to `fake.png`, press `I`, type its path | The hint says `SVG file`; the file is saved as `fake.svg`, not `fake.png`. Rename a PNG to `real.svg` and import it: it is saved as `real.png`. |
+| 70 | Save `<svg><rect/></svg>` (no `xmlns`) as `bare.svg`, press `I`, type its path | The hint says `SVG file, no SVG namespace`, and Enter shows an error that names the missing SVG namespace, writes nothing and does not send it to the agent. The same text on the clipboard gets the usual text hint and goes to the text import. |
+| 71 | Press `I` and type the path of a folder named `x.svg`, or of a named pipe | The usual hint shows, and the box does not hang. An SVG file over 4 MiB hints `SVG file, N bytes, checked on import`; Enter still applies the safety check and the 32 MiB limit. |
