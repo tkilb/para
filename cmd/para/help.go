@@ -14,8 +14,8 @@ import (
 var helpGlobalBindings = []statusbar.Binding{
 	{Key: "s", Label: "open the scratch pad (_scratch.md in the notebook root) in $EDITOR"},
 	{Key: "M", Label: "search the marked notes by name, grouped by folder (enter jumps to the note)"},
-	{Key: "ctrl+f", Label: "find a note by name or path anywhere in the notebook (best file name matches first; the filters of the text search narrow it: tab for Space, Kind and Dir, ctrl+f for modified date and _source.md)"},
-	{Key: "R", Label: "recent notes: the 200 changed most recently, newest first, with the filters of ctrl+f; typing narrows them by fuzzy match, best match first and newest first among equals"},
+	{Key: "ctrl+f", Label: "find a note by name or path anywhere in the notebook (best file name matches first; the filters of the text search narrow it: tab for Space, Kind and Dir, ctrl+f for modified date and _source.md); under space and folder headings, the group of the best match first"},
+	{Key: "R", Label: "recent notes: the 200 changed most recently, newest first, with the filters of ctrl+f; typing narrows them by fuzzy match, best match first and newest first among equals; under space and folder headings, the group of the best match first"},
 	{Key: "ctrl+/ or F", Label: "search text in the notes, grep style, filtered by Space, Kind and Dir (tab switches fields; in Dir, a dropdown of folders: ↑/↓ choose, enter fills in, ctrl+w deletes a folder name, ctrl+u clears; ctrl+f filters by modified date and _source.md transcripts; opens the note at the line)"},
 	{Key: "B", Label: "choose the notebook to open (your place in each is remembered)"},
 	{Key: "A", Label: "Add Note: add a note in the folder PARA shows (tab, ctrl+s saves)"},

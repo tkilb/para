@@ -126,6 +126,10 @@ type Model struct {
 	// the name (from the whole name to the middle of it) as one quality, so
 	// the order of the items decides among them.
 	keepOrder bool
+	// bestGroupFirst orders the headings, while something is typed, by their
+	// best match instead of by the order of the items, so the best match is
+	// still the first row.
+	bestGroupFirst bool
 	// topRight is shown in the top border of the list, near its right corner.
 	topRight string
 }
@@ -172,6 +176,14 @@ func (m Model) SetFocused(on bool) (Model, tea.Cmd) {
 func (m Model) KeepOrder() Model {
 	m.keepOrder = true
 	return m.refilter()
+}
+
+// BestGroupFirst keeps the headings while something is typed and orders them
+// by their best match: the group of the best match comes first, and inside a
+// group the matches stay ranked.
+func (m Model) BestGroupFirst() Model {
+	m.bestGroupFirst = true
+	return m
 }
 
 // WithTopRight shows text in the top border of the list, near its right
@@ -305,7 +317,7 @@ func (m Model) refilter() Model {
 		for i := range m.items {
 			m.matches[i] = match{item: i}
 		}
-		return m
+		return m.regroup()
 	}
 	// Each word is matched on its own, so "deep rocket" finds
 	// "projects/deep/Rocket Plan": an item has to match every word, ranked
@@ -364,6 +376,8 @@ func (m Model) refilter() Model {
 	return m.regroup()
 }
 
+func has(m map[string]int, k string) bool { _, ok := m[k]; return ok }
+
 // groupKey identifies an item's headings.
 func (it Item) groupKey() string { return strings.Join(it.Group, "\x00") }
 
@@ -372,9 +386,17 @@ func (it Item) groupKey() string { return strings.Join(it.Group, "\x00") }
 // The cursor goes to the first row shown.
 func (m Model) regroup() Model {
 	first := map[string]int{}
-	for i, it := range m.items {
-		if _, ok := first[it.groupKey()]; !ok {
-			first[it.groupKey()] = i
+	if m.bestGroupFirst && strings.TrimSpace(m.field.Value()) != "" {
+		for i, mt := range m.matches {
+			if k := m.items[mt.item].groupKey(); !has(first, k) {
+				first[k] = i
+			}
+		}
+	} else {
+		for i, it := range m.items {
+			if _, ok := first[it.groupKey()]; !ok {
+				first[it.groupKey()] = i
+			}
 		}
 	}
 	grouped := false
@@ -494,15 +516,16 @@ func (m Model) listLines(width int) (lines []string, cursorLine int) {
 	var prev []string
 	for i, mt := range m.matches {
 		it := m.items[mt.item]
+		group := it.Group
 		from := 0
-		for from < len(prev) && from < len(it.Group) && prev[from] == it.Group[from] {
+		for from < len(prev) && from < len(group) && prev[from] == group[from] {
 			from++
 		}
-		for level := from; level < len(it.Group); level++ {
+		for level := from; level < len(group); level++ {
 			indent := strings.Repeat(" ", level*groupIndent)
-			lines = append(lines, headingStyles[level].Render(indent+ansi.Truncate(it.Group[level], max(width-len(indent), 1), "…")))
+			lines = append(lines, headingStyles[level].Render(indent+ansi.Truncate(group[level], max(width-len(indent), 1), "…")))
 		}
-		prev = it.Group
+		prev = group
 		if i == m.cursor {
 			cursorLine = len(lines)
 		}

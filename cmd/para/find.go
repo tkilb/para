@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -41,9 +42,7 @@ func noteName(rel string) string {
 // jumps PARA to the one chosen.
 func (m model) openFileFinder() (model, tea.Cmd) {
 	rels := slices.Clone(m.links.Rels())
-	slices.SortFunc(rels, func(a, b string) int {
-		return strings.Compare(strings.ToLower(a), strings.ToLower(b))
-	})
+	slices.SortFunc(rels, compareRels)
 	notes := findtext.Notes(m.store, rels)
 	if len(notes) == 0 {
 		return m.notify(popup.Info, "There are no notes to find."), nil
@@ -54,15 +53,38 @@ func (m model) openFileFinder() (model, tea.Cmd) {
 	return m, cmd
 }
 
+// compareRels orders note paths as Marks does: by top folder (Inbox,
+// Projects, Areas, Resources, Archives, then any other folder, then the
+// notebook root), then by path, ignoring case.
+func compareRels(a, b string) int {
+	rank := func(rel string) int {
+		top, _, nested := strings.Cut(rel, "/")
+		if !nested {
+			return len(paraOrder) + 1
+		}
+		if i := slices.Index(paraOrder, strings.ToLower(top)); i >= 0 {
+			return i
+		}
+		return len(paraOrder)
+	}
+	if c := cmp.Compare(rank(a), rank(b)); c != 0 {
+		return c
+	}
+	return strings.Compare(strings.ToLower(a), strings.ToLower(b))
+}
+
 // noteItem is the picker item for a note: its path without .md, with detail
-// shown dim at the right.
+// shown dim at the right. It sits under the space and top folder headings
+// that Marks uses, which the finder shows while nothing is typed.
 func noteItem(n findtext.Line, detail string) picker.Item {
-	return picker.Item{
+	it := picker.Item{
 		Label:  strings.TrimSuffix(filepath.ToSlash(n.Rel), filepath.Ext(n.Rel)),
 		Name:   noteName(n.Rel),
 		Value:  n.Rel,
 		Detail: detail,
 	}
+	it.Group, it.Trim = markGroup(it.Label)
+	return it
 }
 
 // recentLimit is how many notes the recents popup lists.

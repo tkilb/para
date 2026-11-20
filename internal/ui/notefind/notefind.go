@@ -47,7 +47,7 @@ type Model struct {
 func New(title string, notes []findtext.Line, item ItemFunc, opts filterbar.Options) (Model, tea.Cmd) {
 	m := Model{bar: filterbar.New(notes, opts), item: item}
 	p, cmd := picker.New(title, m.items())
-	m.picker = p.Large().Tall().WithHint(hint)
+	m.picker = p.Large().Tall().BestGroupFirst().WithHint(hint)
 	return m, cmd
 }
 

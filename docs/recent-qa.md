@@ -12,4 +12,5 @@ automated tests, so check these by eye.
 | 5 | Type a word and compare with `ctrl+f` | Find note orders the same matches by how well they fit (an exact name first). Recent notes orders them by how recently they changed. |
 | 6 | `tab` to Kind, change it, or press `ctrl+f` and set Modified since | The list is the 200 newest of the notes that pass the filters, so a Kind with few notes lists all of them. What is typed stays. |
 | 7 | Press `enter` on a note | PARA jumps to the note and the popup closes. `esc` closes it without moving. |
-| 8 | Press `ctrl+f` from the notebook (Find note) afterwards | Find note is unchanged: all notes, sorted by path, no age shown. |
+| 8 | Press `ctrl+f` from the notebook (Find note) afterwards | All notes, no age shown. With nothing typed they sit under headings (`Inbox`, `Projects`, ... then the top folder), sorted by path. |
+| 9 | In `R` and `ctrl+f`, type a word | The headings stay. The group holding the best match is first and its best match is the first row; the other groups follow, ordered by their best match. |
