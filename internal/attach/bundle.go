@@ -11,8 +11,8 @@ import (
 var (
 	// ErrNotNote reports a bundle target that is not a note.
 	ErrNotNote = errors.New("choose a note to bundle the image with")
-	// ErrNotImage reports an item that is not a PNG image.
-	ErrNotImage = errors.New("only a PNG image can be bundled")
+	// ErrNotImage reports an item that is not a PNG or SVG image.
+	ErrNotImage = errors.New("only a PNG or SVG image can be bundled")
 	// ErrAlreadyBundled reports an image already in the note's sidecar folder.
 	ErrAlreadyBundled = errors.New("the image is already bundled with this note")
 )
@@ -38,7 +38,7 @@ func Bundle(s store.Store, noteRel, imageRel string, move bool) (Result, error) 
 		return Result{}, ErrAlreadyBundled
 	}
 	name := path.Base(imageRel)
-	rel, err := freeName(s, side, name[:len(name)-len(".png")])
+	rel, err := freeName(s, side, store.ImageStem(name), store.ImageExt(name))
 	if err != nil {
 		return Result{}, err
 	}

@@ -33,6 +33,9 @@ type row struct {
 	kind  store.Kind // notes only
 	// uid is the note's uid property, "" for a folder or a note without one.
 	uid string
+	// label is the name shown for an image: its stem, and ".svg" after it when
+	// another image in the folder has the same stem. It is "" for a folder or a note.
+	label string
 	// overdue marks a daily note that should have been archived by now.
 	overdue bool
 }
@@ -176,8 +179,9 @@ func (m Model) load(i int) Model {
 	dir := filepath.Join(tabDefs[i].dir, t.dir)
 	entries, err := m.store.List(dir, m.ListOptions())
 	rows := make([]row, len(entries))
+	labels := store.ImageDisplayNames(entryNames(entries))
 	for j, e := range entries {
-		rows[j] = row{entry: e, kind: store.KindUnset}
+		rows[j] = row{entry: e, kind: store.KindUnset, label: labels[j]}
 		if !e.IsDir && !e.IsImage {
 			rows[j].overdue = m.now != nil && store.DailyOverdue(e.Rel, m.retentionDays, m.now())
 			if n, err := m.store.ReadNote(e.Rel); err == nil {
@@ -502,7 +506,7 @@ func (m *Model) jumpToMatch(direction int, includeCurrent bool) {
 	}
 	i = ((i % n) + n) % n
 	for range n {
-		if matches(t.rows[i].entry, t.search) {
+		if matches(t.rows[i], t.search) {
 			m.moveTo(i)
 			return
 		}
@@ -512,18 +516,36 @@ func (m *Model) jumpToMatch(direction int, includeCurrent bool) {
 
 // matches reports whether the row's displayed name contains query, ignoring
 // case.
-func matches(e store.Entry, query string) bool {
-	return strings.Contains(strings.ToLower(rowName(e)), strings.ToLower(query))
+func matches(r row, query string) bool {
+	return strings.Contains(strings.ToLower(r.name()), strings.ToLower(query))
+}
+
+// entryNames lists the file names of entries, in order.
+func entryNames(entries []store.Entry) []string {
+	names := make([]string, len(entries))
+	for i, e := range entries {
+		names[i] = e.Name
+	}
+	return names
+}
+
+// name is the name shown for the row: rowName, except that an image uses its
+// label, which tells an SVG from a PNG of the same stem.
+func (r row) name() string {
+	if r.entry.IsImage {
+		return r.label
+	}
+	return rowName(r.entry)
 }
 
 // rowName is the name shown for an entry: notes without ".md" and images
-// without ".png".
+// without ".png" or ".svg".
 func rowName(e store.Entry) string {
 	switch {
 	case e.IsDir:
 		return e.Name
 	case e.IsImage:
-		return e.Name[:len(e.Name)-len(".png")]
+		return store.ImageStem(e.Name)
 	}
 	return strings.TrimSuffix(e.Name, ".md")
 }

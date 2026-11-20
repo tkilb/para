@@ -197,7 +197,7 @@ const bundleMark = "❖"
 // bullet when there is no bar; query, when the row matches it, highlights the matching text in the
 // name.
 func renderRow(r row, width int, cursor bool, mk mark, marked bool, query string) string {
-	if !matches(r.entry, query) {
+	if !matches(r, query) {
 		query = ""
 	}
 	bar, barColor := " ", markerColors[mk]
@@ -211,7 +211,7 @@ func renderRow(r row, width int, cursor bool, mk mark, marked bool, query string
 	width -= markerWidth
 
 	badge, badgeColor := strings.Repeat(" ", badgeWidth), lipgloss.Color("")
-	name := rowName(r.entry)
+	name := r.name()
 	right := ""
 	switch {
 	case r.entry.IsDir:

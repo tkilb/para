@@ -113,3 +113,4 @@ The agent import can stay off (`digest.enabled` unset) for every step here.
 | 61 | `y`, move to another folder, `p` | A copy is made; pasting twice in one folder gives `name_1.png`, `name_2.png`. |
 | 62 | `d` on an image, then `u` | It goes to the trash, then returns. |
 | 63 | `ctrl+f` and `ctrl+/` | Images are not offered as notes and are not searched. |
+| 64 | Put `foo.png` and `foo.svg` in one folder by hand (importing an SVG with `I` does not exist yet) | Both rows show: the PNG row reads `foo` and the SVG row reads `foo.svg`. Remove one and the other reads `foo`. The same holds in the `❖` tabs of a note whose `.assets` folder holds both. `r` on either row still edits the stem. |

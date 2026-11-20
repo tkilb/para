@@ -54,7 +54,7 @@ func (m model) bundledImages(entry store.Entry) []string {
 const bundleTabMark = "❖"
 
 // bundleLabels are the Content tabs for the note shown: "Content" for the note
-// text, then one for each bundled image named for its file without ".png" and led by a diamond.
+// text, then one for each bundled image named for its file without its extension and led by a diamond.
 // Where the title is too narrow for every name, the tabs that are not open
 // shrink to "C" and a number, and the open name is cut to fit.
 func (m model) bundleLabels() []panel.TabLabel {
@@ -63,8 +63,9 @@ func (m model) bundleLabels() []panel.TabLabel {
 	}
 	_, imageColor := kindstyle.ImageStyle() // the color of the IMG badge
 	labels := []panel.TabLabel{{Full: "Content", Short: "C"}}
-	for i, name := range m.bundle {
-		stem := textsafe.SingleLine(name[:len(name)-len(".png")])
+	shown := store.ImageDisplayNames(m.bundle)
+	for i := range m.bundle {
+		stem := textsafe.SingleLine(shown[i])
 		labels = append(labels, panel.TabLabel{Full: bundleTabMark + stem, Short: strconv.Itoa(i + 1), MarkColor: imageColor})
 	}
 	return labels

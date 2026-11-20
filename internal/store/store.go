@@ -40,7 +40,7 @@ type Entry struct {
 	// Attachments is the number of images in a note's sidecar folder, zero
 	// when it has none and for anything but a note.
 	Attachments int
-	// IsImage is set for a PNG file, listed only when ListOptions.IncludeImages
+	// IsImage is set for a PNG or SVG file, listed only when ListOptions.IncludeImages
 	// is set. It is false for notes and directories.
 	IsImage bool
 }
@@ -50,7 +50,7 @@ type ListOptions struct {
 	// ShowHidden includes names starting with ".". The .obsidian directory
 	// is never listed.
 	ShowHidden bool
-	// IncludeImages also lists .png files. It is off by default so that code
+	// IncludeImages also lists .png and .svg files. It is off by default so that code
 	// which expects every listed file to be a note never sees an image.
 	IncludeImages bool
 }
@@ -58,7 +58,7 @@ type ListOptions struct {
 // Store is the notes backend: a notebook of markdown files.
 type Store interface {
 	// List returns the directories and .md notes in dir (relative to the
-	// notebook root), plus .png files when opts.IncludeImages is set:
+	// notebook root), plus .png and .svg files when opts.IncludeImages is set:
 	// directories first, then files, each sorted by name. A missing
 	// directory lists as empty.
 	List(dir string, opts ListOptions) ([]Entry, error)

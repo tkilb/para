@@ -11,7 +11,8 @@ import (
 )
 
 // imageExts are the file extensions of the images para brings in. The bytes
-// are checked later by imgfmt, never trusted from the name.
+// are checked later by imgfmt, never trusted from the name. SVG is added when
+// intake supports it.
 var imageExts = map[string]bool{".png": true, ".jpg": true, ".jpeg": true, ".webp": true, ".avif": true}
 
 // IsImagePath reports whether path names an image file para can bring in, by

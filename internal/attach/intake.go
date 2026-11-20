@@ -54,7 +54,7 @@ func importClipboard(ctx context.Context, s store.Store, clip Source, dir string
 	if err != nil {
 		return Result{}, true, err
 	}
-	res, err := save(s, dir, now.Format(nameLayout), data)
+	res, err := save(s, dir, now.Format(nameLayout), store.PNGExt, data)
 	return res, true, err
 }
 
@@ -67,13 +67,13 @@ func importFile(s store.Store, dir, path string, now time.Time) (Result, error) 
 	if err != nil {
 		return Result{}, err
 	}
-	return save(s, dir, fileStem(img.Name, now), data)
+	return save(s, dir, fileStem(img.Name, now), store.PNGExt, data)
 }
 
 // fileStem is the name for a saved image taken from a file name: the name
 // cleaned of control characters, or the date when nothing usable is left.
 func fileStem(name string, now time.Time) string {
-	clean, err := store.CleanRenamedImageName(textsafe.SingleLine(name))
+	clean, err := store.CleanRenamedImageName(textsafe.SingleLine(name), store.PNGExt)
 	if err != nil {
 		return now.Format(nameLayout)
 	}

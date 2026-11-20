@@ -13,7 +13,6 @@ import (
 
 const (
 	nameLayout   = "2006-01-02 15-04-05"
-	pngExt       = ".png"
 	pasteTimeout = 15 * time.Second
 	maxNameTries = 1000
 )
@@ -31,10 +30,10 @@ type Result struct {
 	Action undo.Action
 }
 
-// save writes the PNG in data to dir as "stem.png", with a number added to the
+// save writes the image in data to dir as "stem" and ext (".png" or ".svg"), with a number added to the
 // stem when that name is taken.
-func save(s store.Store, dir, stem string, data []byte) (Result, error) {
-	rel, err := freeName(s, dir, stem)
+func save(s store.Store, dir, stem, ext string, data []byte) (Result, error) {
+	rel, err := freeName(s, dir, stem, ext)
 	if err != nil {
 		return Result{}, err
 	}
@@ -45,15 +44,15 @@ func save(s store.Store, dir, stem string, data []byte) (Result, error) {
 	return Result{Rel: rel, Action: act}, nil
 }
 
-// freeName returns the first unused "stem.png" name in dir, then "stem 2.png"
-// and so on.
-func freeName(s store.Store, dir, stem string) (string, error) {
+// freeName returns the first unused "stem" plus ext name in dir, then "stem 2"
+// plus ext and so on.
+func freeName(s store.Store, dir, stem, ext string) (string, error) {
 	for n := 1; n <= maxNameTries; n++ {
 		name := stem
 		if n > 1 {
 			name = fmt.Sprintf("%s %d", stem, n)
 		}
-		rel := filepath.ToSlash(filepath.Join(dir, name+pngExt))
+		rel := filepath.ToSlash(filepath.Join(dir, name+ext))
 		taken, err := s.Exists(rel)
 		if err != nil {
 			return "", err

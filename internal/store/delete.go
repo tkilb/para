@@ -13,7 +13,7 @@ type DirInfo struct {
 	// Items counts every file and folder inside, recursively.
 	Items int
 	// Unlisted counts the items a listing would not show: hidden names,
-	// anything inside a hidden folder, a note's sidecar folder and what is in it, and files that are neither .md notes nor .png images.
+	// anything inside a hidden folder, a note's sidecar folder and what is in it, and files that are neither .md notes nor .png or .svg images.
 	Unlisted int
 }
 

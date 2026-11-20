@@ -90,11 +90,12 @@ func TestOpenRejects(t *testing.T) {
 		{"text in a png", write("text.png", []byte("not an image"))},
 		{"a damaged png", write("bad.png", pngBytes(t, solid(8, 8, red))[:30])},
 		{"an empty file", write("empty.png", nil)},
+		{"an svg until it can be drawn", write("logo.svg", []byte(`<svg xmlns="http://www.w3.org/2000/svg"/>`))},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := Open(tt.path)
-			require.Error(t, err)
+			require.ErrorIs(t, err, ErrUnreadable)
 			assert.NotContains(t, err.Error(), dir, "errors never show paths")
 		})
 	}

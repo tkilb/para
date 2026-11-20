@@ -8,11 +8,11 @@ import (
 )
 
 // RenameRequest is a validated rename of the item at Rel to Name, the new
-// file or folder name (a note's name includes .md, an image's .png).
+// file or folder name (a note's name includes .md, an image's .png or .svg).
 type RenameRequest struct {
 	Rel   string
 	IsDir bool
-	// IsImage is set for a PNG image, which is renamed on its own: no title
+	// IsImage is set for a PNG or SVG image, which is renamed on its own: no title
 	// property and no references to update.
 	IsImage bool
 	// Typed is what the user typed; Name is it cleaned.
@@ -29,7 +29,7 @@ func (m Model) askRename() (Model, Effect) {
 	name := e.Name
 	switch {
 	case e.IsImage:
-		name = rowName(e)
+		name = store.ImageStem(e.Name)
 	case !e.IsDir:
 		name = strings.TrimSuffix(strings.TrimSuffix(name, ".md"), ".MD")
 	}
@@ -45,7 +45,7 @@ func (m Model) rename(text string) (Model, Effect) {
 	}
 	clean := func() (string, error) { return store.CleanRenamedName(text, e.IsDir) }
 	if e.IsImage {
-		clean = func() (string, error) { return store.CleanRenamedImageName(text) }
+		clean = func() (string, error) { return store.CleanRenamedImageName(text, store.ImageExt(e.Name)) }
 	}
 	name, err := clean()
 	if err != nil {

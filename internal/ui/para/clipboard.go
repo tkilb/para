@@ -140,11 +140,11 @@ const maxDuplicates = 9999
 // errNoFreeName reports that every "_N" name up to maxDuplicates is taken.
 var errNoFreeName = errors.New("no free name for the copy")
 
-// freeName returns rel with the first "_N" suffix (before a ".md" or ".png"
+// freeName returns rel with the first "_N" suffix (before a ".md", ".png" or ".svg"
 // extension) that nothing occupies yet: a.md becomes a_1.md, then a_2.md.
 func (m Model) freeName(rel string) (string, error) {
 	stem, ext := rel, ""
-	for _, e := range []string{".md", ".png"} {
+	for _, e := range []string{".md", store.PNGExt, store.SVGExt} {
 		if strings.HasSuffix(strings.ToLower(rel), e) {
 			stem, ext = rel[:len(rel)-len(e)], rel[len(rel)-len(e):]
 			break

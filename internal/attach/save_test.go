@@ -55,9 +55,9 @@ func newStoreAt(root string) store.Store { return store.NewMarkdown(root) }
 
 func TestSaveNeverOverwrites(t *testing.T) {
 	root, s := newStore(t)
-	first, err := save(s, "projects/alpha", "pic", tinyPNG(t))
+	first, err := save(s, "projects/alpha", "pic", ".png", tinyPNG(t))
 	require.NoError(t, err)
-	second, err := save(s, "projects/alpha", "pic", tinyPNG(t))
+	second, err := save(s, "projects/alpha", "pic", ".png", tinyPNG(t))
 	require.NoError(t, err)
 	assert.Equal(t, "projects/alpha/pic.png", first.Rel)
 	assert.Equal(t, "projects/alpha/pic 2.png", second.Rel)
@@ -66,7 +66,7 @@ func TestSaveNeverOverwrites(t *testing.T) {
 
 func TestSaveUndoAndRedo(t *testing.T) {
 	root, s := newStore(t)
-	res, err := save(s, "projects/alpha", "pic", tinyPNG(t))
+	res, err := save(s, "projects/alpha", "pic", ".png", tinyPNG(t))
 	require.NoError(t, err)
 	path := filepath.Join(root, res.Rel)
 
@@ -78,6 +78,27 @@ func TestSaveUndoAndRedo(t *testing.T) {
 
 func TestSaveRefusesAFolderOutsideTheNotebook(t *testing.T) {
 	_, s := newStore(t)
-	_, err := save(s, "../elsewhere", "pic", tinyPNG(t))
+	_, err := save(s, "../elsewhere", "pic", ".png", tinyPNG(t))
 	require.Error(t, err)
+}
+
+func TestSaveKeepsTheGivenExtension(t *testing.T) {
+	_, s := newStore(t)
+	first, err := save(s, "projects/alpha", "logo", ".svg", []byte("<svg/>"))
+	require.NoError(t, err)
+	second, err := save(s, "projects/alpha", "logo", ".svg", []byte("<svg/>"))
+	require.NoError(t, err)
+	assert.Equal(t, "projects/alpha/logo.svg", first.Rel)
+	assert.Equal(t, "projects/alpha/logo 2.svg", second.Rel)
+}
+
+func TestFreeNameKeepsAPNGAndSVGOfOneNameApart(t *testing.T) {
+	root, s := newStore(t)
+	first, err := save(s, "projects/alpha", "foo", ".png", tinyPNG(t))
+	require.NoError(t, err)
+	second, err := save(s, "projects/alpha", "foo", ".svg", []byte("<svg/>"))
+	require.NoError(t, err)
+	assert.Equal(t, "projects/alpha/foo.png", first.Rel)
+	assert.Equal(t, "projects/alpha/foo.svg", second.Rel)
+	assert.FileExists(t, filepath.Join(root, second.Rel))
 }
