@@ -326,6 +326,7 @@ func (m Model) refilter() Model {
 	type candidate struct {
 		item    int
 		quality int
+		nameHit int // how many words matched in the name, not only the folders
 		score   int
 		at      map[int]bool
 	}
@@ -350,6 +351,9 @@ func (m Model) refilter() Model {
 				quality = min(quality, qContains) // a hit in the name is a hit, however it starts
 			}
 			c.quality += quality
+			if wm.quality >= qNameFuzzy {
+				c.nameHit++
+			}
 			c.score += wm.score
 			at := make(map[int]bool, len(c.at)+len(wm.at))
 			for b := range c.at {
@@ -364,6 +368,9 @@ func (m Model) refilter() Model {
 		cands = next
 	}
 	sort.SliceStable(cands, func(i, j int) bool {
+		if cands[i].nameHit != cands[j].nameHit {
+			return cands[i].nameHit > cands[j].nameHit
+		}
 		if cands[i].quality != cands[j].quality {
 			return cands[i].quality > cands[j].quality
 		}

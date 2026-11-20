@@ -14,3 +14,4 @@ automated tests, so check these by eye.
 | 7 | Press `enter` on a note | PARA jumps to the note and the popup closes. `esc` closes it without moving. |
 | 8 | Press `ctrl+f` from the notebook (Find note) afterwards | All notes, no age shown. With nothing typed they sit under headings (`Inbox`, `Projects`, ... then the top folder), sorted by path. |
 | 9 | In `R` and `ctrl+f`, type a word | The headings stay. The group holding the best match is first and its best match is the first row; the other groups follow, ordered by their best match. |
+| 10 | In `ctrl+f` with `projects/deep/Rocket Plan` and `projects/rocket/deep notes`, type `deep rocket` | The note with both words in the file name (or more of them) is above the one that matches mostly in folders. |
