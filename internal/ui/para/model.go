@@ -117,6 +117,10 @@ type Model struct {
 	innerRows int
 	// pendingG is set after a first "g", waiting for the second of "gg".
 	pendingG bool
+	// back remembers the folders left with "left", innermost last, each with
+	// the row the cursor was on, so entering them again at once restores
+	// those rows. Any other key clears it. It is replaced, never mutated.
+	back []backMemory
 	// clip is the yank/cut buffer, shared by every tab.
 	clip clip
 	// retentionDays is how old an undigested daily note may get before its
@@ -238,6 +242,11 @@ func restoreCursor(rows []row, cursor int, keep string) int {
 // Update handles a key press while the panel has focus. The Effect says
 // what the root model must do besides showing the updated panel.
 func (m Model) Update(msg tea.KeyMsg) (Model, Effect) {
+	switch msg.String() {
+	case "left", "right", "enter":
+	default:
+		m.back = nil
+	}
 	m, eff := m.update(msg)
 	return m.syncScroll(), eff
 }
@@ -354,6 +363,12 @@ func (m Model) enterDir() Model {
 	}
 	t.dir = filepath.Join(t.dir, t.rows[t.cursor].entry.Name)
 	t.cursor, t.keep = 0, ""
+	if n := len(m.back); n > 0 && m.back[n-1].tab == m.active && m.back[n-1].dir == t.dir {
+		t.keep = m.back[n-1].name
+		m.back = m.back[: n-1 : n-1]
+	} else {
+		m.back = nil
+	}
 	t.selected, t.visual, t.search = nil, visualState{}, ""
 	m.tabs[m.active] = t
 	return m.load(m.active)
@@ -386,12 +401,25 @@ func (m Model) goUp() Model {
 		return m
 	}
 	t.keep = filepath.Base(t.dir)
+	b := backMemory{tab: m.active, dir: t.dir}
+	if t.cursor < len(t.rows) {
+		b.name = t.rows[t.cursor].entry.Name
+	}
+	m.back = append(m.back[:len(m.back):len(m.back)], b)
 	t.selected, t.visual, t.search = nil, visualState{}, ""
 	if t.dir = filepath.Dir(t.dir); t.dir == "." {
 		t.dir = ""
 	}
 	m.tabs[m.active] = t
 	return m.load(m.active)
+}
+
+// backMemory is a folder left by goUp (dir, relative to the tab root) and
+// the name of the row the cursor was on in it.
+type backMemory struct {
+	tab  int
+	dir  string
+	name string
 }
 
 func (m Model) switchTab(i int) Model {
