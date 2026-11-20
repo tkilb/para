@@ -23,7 +23,7 @@ var helpGlobalBindings = []statusbar.Binding{
 	{Key: "U", Label: "clip a web page: a title (optional) and a URL; saved in the folder PARA shows"},
 	{Key: "o", Label: "open the web address in the note's source in the browser"},
 	{Key: "ctrl+t", Label: "append a template to the end of the selected note (u undoes it)"},
-	{Key: "ctrl+y", Label: "glossary: fuzzy-pick a term from glossary.yaml in the notebook root (enter shows it; ctrl+n adds, ctrl+e edits, ctrl+x deletes)"},
+	{Key: "ctrl+y", Label: "glossary: fuzzy-pick a term from glossary.yaml in the notebook root (typing searches the term, then the first line of the definition, then the rest; enter shows it; ctrl+n adds, ctrl+e edits, ctrl+x deletes)"},
 	{Key: "b/t/T", Label: "open yesterday's/today's/tomorrow's daily note"},
 	{Key: "u", Label: "undo"},
 	{Key: "ctrl+r", Label: "redo"},

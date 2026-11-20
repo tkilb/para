@@ -61,6 +61,10 @@ var (
 type Item struct {
 	Label, Detail, Value string
 	Name                 string
+	// Lead and Body are searched when a word is not in the label: a match in
+	// Lead ranks above one in Body, and both below any match in the label.
+	Lead string
+	Body string
 	// Preview is the text shown in the preview pane while the item is
 	// highlighted (see WithPreview).
 	Preview string

@@ -61,6 +61,8 @@ func (m model) openGlossary(at glossary.Entry) (model, tea.Cmd) {
 		items[i] = picker.Item{
 			Label:   textsafe.Sanitize(e.Term),
 			Detail:  firstLine(textsafe.Sanitize(e.Definition)),
+			Lead:    firstLine(textsafe.Sanitize(e.Definition)),
+			Body:    restLines(textsafe.Sanitize(e.Definition)),
 			Preview: glossary.Spaced(textsafe.Sanitize(e.Definition)),
 			Value:   glossaryValue(e),
 		}
@@ -78,6 +80,12 @@ func (m model) openGlossary(at glossary.Entry) (model, tea.Cmd) {
 func firstLine(s string) string {
 	line, _, _ := strings.Cut(s, "\n")
 	return line
+}
+
+// restLines is s after its first line break, or "" when it has one line.
+func restLines(s string) string {
+	_, rest, _ := strings.Cut(s, "\n")
+	return rest
 }
 
 // glossaryKey handles the glossary's own keys while its picker is open:

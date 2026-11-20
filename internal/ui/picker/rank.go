@@ -11,9 +11,12 @@ import (
 // How well a word matched an item, best last. A contiguous run beats the same
 // letters scattered, a match at the start of the name or of one of its words
 // beats one in the middle, and a match in the name beats one only in the rest
-// of the label (the folders of a path).
+// of the label (the folders of a path). An item with a Lead or Body is also
+// found by them, below every match in the label.
 const (
-	qPathFuzzy     = iota // scattered across the whole label
+	qBodyHit       = iota // contiguous in the item's Body
+	qLeadHit              // contiguous in the item's Lead
+	qPathFuzzy            // scattered across the whole label
 	qPathExact            // contiguous, but only in the folders
 	qNameFuzzy            // scattered across the name
 	qContains             // contiguous inside the name
@@ -129,6 +132,17 @@ func (m Model) rank(word string, items []int) map[int]wordMatch {
 			out[f.Index] = wordMatch{qPathExact, -len(it.Label), runeStarts(it.Label, at, len(word), 0)}
 		} else {
 			out[f.Index] = wordMatch{qPathFuzzy, f.Score, f.MatchedIndexes}
+		}
+	}
+	for i, it := range items {
+		if _, ok := out[i]; ok {
+			continue
+		}
+		it := m.items[it]
+		if at := strings.Index(strings.ToLower(it.Lead), strings.ToLower(word)); at >= 0 && word != "" {
+			out[i] = wordMatch{qLeadHit, -at, nil}
+		} else if at := strings.Index(strings.ToLower(it.Body), strings.ToLower(word)); at >= 0 && word != "" {
+			out[i] = wordMatch{qBodyHit, -at, nil}
 		}
 	}
 	return out

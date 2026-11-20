@@ -15,3 +15,4 @@ automated tests, so check these by eye.
 | 8 | Press `ctrl+f` from the notebook (Find note) afterwards | All notes, no age shown. With nothing typed they sit under headings (`Inbox`, `Projects`, ... then the top folder), sorted by path. |
 | 9 | In `R` and `ctrl+f`, type a word | The headings stay. The group holding the best match is first and its best match is the first row; the other groups follow, ordered by their best match. |
 | 10 | In `ctrl+f` with `projects/deep/Rocket Plan` and `projects/rocket/deep notes`, type `deep rocket` | The note with both words in the file name (or more of them) is above the one that matches mostly in folders. |
+| 11 | In the glossary (`ctrl+y`), type a word that is in one term, in the first line of another definition and only in the body of a third | The term comes first, then the first-line match, then the body match. A word in none of them lists nothing. |
