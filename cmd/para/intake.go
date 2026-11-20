@@ -52,7 +52,11 @@ func (m model) reopenForm(v noteform.Values, f noteform.Field, why error) (model
 	return m.notify(popup.Warning, capitalize(why.Error())+"."), cmd
 }
 
-// formKey handles a key while the Add Note form is open: esc cancels, enter
+// discardPrompt is asked when esc would throw away a form the user changed.
+const discardPrompt = "Discard the note you started?"
+
+// formKey handles a key while the Add Note form is open: esc cancels (after
+// asking, when the form has been changed), enter
 // in any single-line field and ctrl+s anywhere save, and everything else
 // edits the form.
 func (m model) formKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -63,6 +67,12 @@ func (m model) formKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 	switch msg.String() {
 	case "esc":
+		if m.form.Dirty() {
+			return m.ask(discardPrompt, func(m model) model {
+				m.form, m.formSave = nil, nil
+				return m
+			}), nil
+		}
 		m.form, m.formSave = nil, nil
 		return m, nil
 	case "ctrl+s":

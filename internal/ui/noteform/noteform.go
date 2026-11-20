@@ -125,6 +125,9 @@ type Model struct {
 	screenWidth, screenHeight int
 	// bodyRows is how many body lines show at once.
 	bodyRows int
+	// initial is what the form held when New made it, to tell whether the
+	// user has changed anything (see Dirty).
+	initial Values
 }
 
 // New returns an empty form named name ("Add Note") offering sources, the
@@ -158,6 +161,7 @@ func New(name string, sources []string, screenWidth, screenHeight int) (Model, t
 		sources: sources,
 	}
 	m = m.Resize(screenWidth, screenHeight)
+	m.initial = m.Values()
 	return m.focus(FieldTitle)
 }
 
@@ -213,6 +217,10 @@ func (m Model) Values() Values {
 		Source: m.sources[m.srcIdx], Tags: m.tags.Value(), Template: m.TemplateName(),
 	}
 }
+
+// Dirty reports whether any field differs from the empty form New made, so a
+// form shown again with the text typed before a mistake counts as dirty.
+func (m Model) Dirty() bool { return m.Values() != m.initial }
 
 // FocusedField reports which field has the keyboard.
 func (m Model) FocusedField() Field { return m.focused }
