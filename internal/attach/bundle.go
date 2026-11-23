@@ -11,8 +11,8 @@ import (
 var (
 	// ErrNotNote reports a bundle target that is not a note.
 	ErrNotNote = errors.New("choose a note to bundle the image with")
-	// ErrNotImage reports an item that is not a PNG or SVG image.
-	ErrNotImage = errors.New("only a PNG or SVG image can be bundled")
+	// ErrNotImage reports an item that is not a PNG or SVG image or a PDF.
+	ErrNotImage = errors.New("only a PNG or SVG image or a PDF can be bundled")
 	// ErrAlreadyBundled reports an image already in the note's sidecar folder.
 	ErrAlreadyBundled = errors.New("the image is already bundled with this note")
 )

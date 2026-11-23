@@ -218,7 +218,7 @@ func renderRow(r row, width int, cursor bool, mk mark, marked bool, query string
 		name = r.entry.Name + "/"
 		right = fmt.Sprint(r.entry.ItemCount)
 	case r.entry.IsImage:
-		badge, badgeColor = kindstyle.ImageStyle()
+		badge, badgeColor = kindstyle.AttachmentStyle(r.entry.Name)
 	default:
 		badge, badgeColor = kindstyle.Badge(r.kind)
 		if r.entry.Attachments > 0 {

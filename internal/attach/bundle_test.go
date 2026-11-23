@@ -133,3 +133,12 @@ func TestBundleKeepsAPNGAndSVGOfOneNameApart(t *testing.T) {
 	assert.FileExists(t, filepath.Join(root, png.Rel))
 	assert.FileExists(t, filepath.Join(root, svg.Rel))
 }
+
+func TestBundleTakesAPDF(t *testing.T) {
+	root, s := bundleRoot(t)
+	require.NoError(t, os.WriteFile(filepath.Join(root, "inbox", "paper.pdf"), []byte("%PDF-1.7"), 0o600))
+	res, err := Bundle(s, "projects/alpha/plan.md", "inbox/paper.pdf", false)
+	require.NoError(t, err)
+	assert.Equal(t, "projects/alpha/plan.assets/paper.pdf", res.Rel)
+	assert.FileExists(t, filepath.Join(root, res.Rel))
+}

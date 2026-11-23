@@ -39,6 +39,18 @@ const ImageBadge = " IMG"
 // imageColor is the color of ImageBadge.
 var imageColor = lipgloss.Color("13")
 
+// PDFBadge is the badge of a PDF, set the same way as ImageBadge.
+const PDFBadge = " PDF"
+
+// AttachmentStyle returns the badge and color of the file called name: PDFBadge
+// for a PDF, else the image badge.
+func AttachmentStyle(name string) (string, lipgloss.Color) {
+	if store.ImageExt(name) == store.PDFExt {
+		return PDFBadge, imageColor
+	}
+	return ImageBadge, imageColor
+}
+
 // ImageStyle returns the badge and color of a PNG image.
 func ImageStyle() (string, lipgloss.Color) { return ImageBadge, imageColor }
 

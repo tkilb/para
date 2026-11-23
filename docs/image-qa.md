@@ -136,3 +136,16 @@ The SVG is stored unchanged; the preview shows "cannot read the image" for it un
 | 72 | Select a loose image row in PARA and press `o` | The image opens in the operating system's preferred viewer. PARA stays open and shows no notice. |
 | 73 | Select a note with bundled images, go to an image tab (`→` or `]`) and press `o` | The image of that tab opens in the viewer. On the note tab, `o` still opens the `source` web address, or shows the no-address notice. |
 | 74 | Temporarily rename the opener (for example run PARA with `open` or `xdg-open` off `PATH`) and press `o` on an image | A warning says the opener could not start; PARA does not crash. |
+
+## PDF attachments, chunk 1: listing and bundling
+
+PDFs are listed, bundled, renamed, deleted and opened like images. The page preview is chunk 2 and import is chunk 3, so until then the preview shows "cannot read the image".
+
+| # | Step | Expect |
+| --- | --- | --- |
+| 75 | Copy `paper.pdf` into a folder by hand and look at PARA | The row shows the `PDF` badge and the name `paper` (no extension). Opening it shows "cannot read the image" for now. |
+| 76 | Put `paper.png` and `paper.pdf` in one folder | The PNG reads `paper` and the PDF reads `paper.pdf`. |
+| 77 | Select `paper.pdf`, press `y`, select a note, press `p` | The PDF is bundled: the note row gets the `❖` mark and a tab `paper` appears. `x` moves it instead. `u` undoes either. |
+| 78 | Press `r` on `paper.pdf`, type `report` | The file becomes `report.pdf`. Typing `report.png` gives `report.png.pdf`. |
+| 79 | Press `d` on a PDF row, then `u` | The PDF goes to the trash and comes back. |
+| 80 | Press `o` on a PDF row, and on a PDF tab of a note | The PDF opens in the system's preferred PDF viewer. |

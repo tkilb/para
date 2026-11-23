@@ -12,7 +12,7 @@ import (
 
 // dirItems turns the entries of a folder into Content's listing, in the order
 // PARA lists them: a folder has a blank badge, a note has its kind's badge
-// and color as in PARA, an image has the IMG badge, and ".md", ".png" or ".svg" is
+// and color as in PARA, an image has the IMG badge, and ".md", ".png", ".svg" or ".pdf" is
 // dropped from a name.
 func (m model) dirItems(entries []store.Entry) []content.ListItem {
 	items := make([]content.ListItem, len(entries))
@@ -23,7 +23,7 @@ func (m model) dirItems(entries []store.Entry) []content.ListItem {
 			continue
 		}
 		if e.IsImage {
-			badge, color := kindstyle.ImageStyle()
+			badge, color := kindstyle.AttachmentStyle(e.Name)
 			items[i] = content.ListItem{Badge: badge, Color: color, Name: shown[i]}
 			continue
 		}

@@ -20,7 +20,7 @@ func TestListLeavesImagesOutByDefault(t *testing.T) {
 
 func TestListIncludesImagesWhenAsked(t *testing.T) {
 	root, _ := newRoot(t)
-	writeTree(t, root, "areas/b.md", "areas/a.png", "areas/C.PNG", "areas/doc.pdf", "areas/anim.gif",
+	writeTree(t, root, "areas/b.md", "areas/a.png", "areas/C.PNG", "areas/doc.txt", "areas/anim.gif",
 		"areas/.hidden.png", "areas/sub/")
 
 	got, err := NewMarkdown(root).List("areas", ListOptions{IncludeImages: true})
@@ -62,12 +62,12 @@ func TestItemCountFollowsTheImageOption(t *testing.T) {
 
 func TestInspectCountsAnImageAsListed(t *testing.T) {
 	root, _ := newRoot(t)
-	writeTree(t, root, "areas/sub/one.md", "areas/sub/two.png", "areas/sub/three.pdf")
+	writeTree(t, root, "areas/sub/one.md", "areas/sub/two.png", "areas/sub/three.txt")
 
 	di, err := NewMarkdown(root).Inspect("areas/sub")
 	require.NoError(t, err)
 	assert.Equal(t, 3, di.Items)
-	assert.Equal(t, 1, di.Unlisted, "only the PDF is unlisted")
+	assert.Equal(t, 1, di.Unlisted, "only the text file is unlisted")
 }
 
 func TestCountNotesIgnoresImages(t *testing.T) {
@@ -111,6 +111,10 @@ func TestCleanRenamedImageName(t *testing.T) {
 		{"upper case svg ext argument keeps name", "logo.svg", ".SVG", "logo.svg", nil},
 		{"a name with dots", "a.b", ".svg", "a.b.svg", nil},
 		{"an upper case svg is not turned into a png", "logo.SVG", ".png", "logo.SVG.png", nil},
+		{"pdf extension added", "report", ".pdf", "report.pdf", nil},
+		{"pdf extension kept", "report.PDF", ".pdf", "report.PDF", nil},
+		{"a pdf is not turned into a png", "report.png", ".pdf", "report.png.pdf", nil},
+		{"only the pdf extension", ".pdf", ".pdf", "", ErrEmptyName},
 		{"an unknown extension means png", "logo", "", "logo.png", nil},
 		{"empty", "  ", ".png", "", ErrEmptyName},
 		{"only the extension", ".png", ".png", "", ErrEmptyName},
@@ -227,6 +231,9 @@ func TestImageDisplayNames(t *testing.T) {
 		{"different stems do not collide", []string{"foo.png", "foo2.svg"}, []string{"foo", "foo2"}},
 		{"svg does not collide with a note", []string{"foo.md", "foo.svg"}, []string{"foo.md", "foo"}},
 		{"non-images pass through", []string{"x.md", "dir", "a.jpg"}, []string{"x.md", "dir", "a.jpg"}},
+		{"pdf shows its stem", []string{"a.pdf", "b.png"}, []string{"a", "b"}},
+		{"pdf and png collide", []string{"foo.png", "foo.pdf"}, []string{"foo", "foo.pdf"}},
+		{"pdf and svg collide", []string{"foo.pdf", "foo.svg"}, []string{"foo.pdf", "foo.svg"}},
 		{"svg in the stem of a png", []string{"a.svg.png", "a.svg"}, []string{"a.svg", "a"}},
 	}
 	for _, tt := range tests {
@@ -234,4 +241,12 @@ func TestImageDisplayNames(t *testing.T) {
 			assert.Equal(t, tt.want, ImageDisplayNames(tt.names))
 		})
 	}
+}
+
+func TestPDFIsAnAttachment(t *testing.T) {
+	assert.True(t, IsImage("report.pdf"))
+	assert.True(t, IsImage("Report.PDF"))
+	assert.False(t, IsImage(".pdf"))
+	assert.Equal(t, ".pdf", ImageExt("a.PDF"))
+	assert.Equal(t, "a", ImageStem("a.PDF"))
 }

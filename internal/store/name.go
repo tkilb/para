@@ -53,14 +53,14 @@ func CleanRenamedName(input string, isDir bool) (string, error) {
 }
 
 // CleanRenamedImageName validates a name typed into the rename prompt for an
-// image. The name gets ext (".png" or ".svg", the image's own extension; any
+// image. The name gets ext (".png", ".svg" or ".pdf", the file's own extension; any
 // other value means ".png") unless it already ends with it, so renaming never
 // turns an image into a note or into another image type. It rejects empty
 // names, "." and "..", any "/" and NUL bytes, and a name that is only the
 // extension.
 func CleanRenamedImageName(input, ext string) (string, error) {
 	ext = strings.ToLower(ext)
-	if ext != SVGExt {
+	if ext != SVGExt && ext != PDFExt {
 		ext = PNGExt
 	}
 	name := strings.TrimSpace(input)
