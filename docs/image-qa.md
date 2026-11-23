@@ -160,3 +160,13 @@ Page 1 is drawn by `pdftoppm` (poppler; `brew install poppler`), at most 10 seco
 | 82 | Bundle the PDF with a note and open its tab | The tab shows the same page 1 with the `1/1 name` caption. |
 | 83 | Select a file named `bad.pdf` that holds plain text | Content shows "cannot read the PDF"; PARA does not hang or crash. |
 | 84 | Start PARA with `pdftoppm` off `PATH` and select a PDF | Content shows "install poppler (pdftoppm) to preview a PDF"; `o` still opens the PDF. |
+
+## PDF attachments, chunk 3: import (`I`)
+
+| # | Step | Expect |
+| --- | --- | --- |
+| 85 | Press `I`, type the path of a real PDF | The hint says `PDF file, N bytes, saved as is`. Enter saves `name.pdf` in the folder PARA shows, byte for byte (`cmp` against the original); the original is untouched, the cursor lands on it, and `u` undoes it. This works with `digest.enabled` off. |
+| 86 | Import the same PDF again | It is saved as `name 2.pdf`; the first is untouched. |
+| 87 | Rename a text file to `fake.pdf` and import it | The hint says `PDF file, not a PDF`. Enter shows "the file is not a PDF" with no path, writes nothing and does not send it to the agent. |
+| 88 | Type the path of a PDF over 32 MB, a folder named `x.pdf`, and a missing `none.pdf` | The hint says `too large` for the first and is the usual hint for the others. Enter refuses each with a message that shows no path. |
+| 89 | With a note in PARA, import a PDF and bundle it (`y`, then `p` on the note) | The PDF becomes a tab of the note with its page 1 preview. |

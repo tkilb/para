@@ -19,7 +19,7 @@ var helpGlobalBindings = []statusbar.Binding{
 	{Key: "ctrl+/ or F", Label: "search text in the notes, grep style, filtered by Space, Kind and Dir (tab switches fields; in Dir, a dropdown of folders: ↑/↓ choose, enter fills in, ctrl+w deletes a folder name, ctrl+u clears; ctrl+f filters by modified date and _source.md transcripts; opens the note at the line)"},
 	{Key: "B", Label: "choose the notebook to open (your place in each is remembered)"},
 	{Key: "A", Label: "Add Note: add a note in the folder PARA shows (tab, ctrl+s saves)"},
-	{Key: "I", Label: "import the clipboard, a web page or a file with the agent; an image (clipboard or file) is saved instead, as a PNG, or as is for an SVG; on an IMPORT_ folder, run it again"},
+	{Key: "I", Label: "import the clipboard, a web page or a file with the agent; an image (clipboard or file) is saved instead, as a PNG, or as is for an SVG; a PDF file is saved as is; on an IMPORT_ folder, run it again"},
 	{Key: "U", Label: "clip a web page: a title (optional) and a URL; saved in the folder PARA shows"},
 	{Key: "o", Label: "open the web address in the note's source in the browser; on an image or an image tab, open the image in the system viewer"},
 	{Key: "ctrl+t", Label: "append a template to the end of the selected note (u undoes it)"},

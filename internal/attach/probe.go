@@ -67,6 +67,9 @@ func ProbeFile(input, inboxDir string) (string, bool) {
 		return "", false
 	}
 	path := loader.ResolveFile(in.Value, inboxDir)
+	if loader.IsPDFPath(path) {
+		return probePDF(loader.ExpandHome(path))
+	}
 	if !loader.IsImagePath(path) {
 		return "", false
 	}

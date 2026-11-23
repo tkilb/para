@@ -20,6 +20,11 @@ func IsImagePath(path string) bool {
 	return imageExts[strings.ToLower(filepath.Ext(path))]
 }
 
+// IsPDFPath reports whether path names a PDF file, by its extension.
+func IsPDFPath(path string) bool {
+	return strings.EqualFold(filepath.Ext(path), ".pdf")
+}
+
 // ImageFile is an image read from disk, still in its own format.
 type ImageFile struct {
 	// Name is the file name without its extension.

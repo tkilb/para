@@ -17,7 +17,8 @@ import (
 // blank input is the clipboard: when it holds an image, or text that is an SVG
 // document, it is saved. Anything else is a file path, and an image file (PNG,
 // JPEG, WebP, AVIF or SVG) is saved: a raster image converted to PNG, an SVG
-// unchanged once it passes the safety check. The kind is decided from the
+// unchanged once it passes the safety check. A PDF file is saved unchanged
+// once its header checks out. The kind is decided from the
 // content, not the file name. The image goes into dir (relative to the
 // notebook root), named for the file, or for the moment when it came from the
 // clipboard.
@@ -33,6 +34,10 @@ func Import(ctx context.Context, s store.Store, clip Source, dir, input, inboxDi
 		return importClipboard(ctx, s, clip, dir, now)
 	case loader.File:
 		path := loader.ResolveFile(in.Value, inboxDir)
+		if loader.IsPDFPath(path) {
+			res, err = importPDF(s, dir, path, now)
+			return res, true, err
+		}
 		if !loader.IsImagePath(path) {
 			return Result{}, false, nil
 		}
