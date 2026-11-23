@@ -147,10 +147,9 @@ func (f *Folder) Finish(d Digest) (Result, error) {
 		warnings = append(warnings, "the parts of a large source could not be merged and are kept side by side")
 	}
 	src := f.sourceProp(sourceOr(d.Source))
-	if f.src.Kind != loader.Web {
-		if err := f.setSource(src); err != nil {
-			warnings = append(warnings, "could not set the source of "+SourceFile)
-		}
+	people := cleanPeople(d.People)
+	if err := f.setSourceProps(src, people); err != nil {
+		warnings = append(warnings, "could not update the properties of "+SourceFile)
 	}
 
 	var files []string
@@ -160,7 +159,7 @@ func (f *Folder) Finish(d Digest) (Result, error) {
 	taken := map[string]bool{strings.ToLower(SourceFile): true, strings.ToLower(ActionsFile): true, strings.ToLower(FactsFile): true, strings.ToLower(ConclusionsFile): true}
 	for _, n := range notes {
 		name := freeName(intake.Name(n.Title), taken)
-		data, err := store.IntakeNote(name, f.kind, src, f.now.Format(dayLayout), n.Body+"\n", n.Tags)
+		data, err := store.IntakeNoteWithPeople(name, f.kind, src, f.now.Format(dayLayout), n.Body+"\n", n.Tags, people)
 		if err == nil {
 			err = f.create(name, data)
 		}
@@ -176,7 +175,7 @@ func (f *Folder) Finish(d Digest) (Result, error) {
 		if len(l.items) == 0 {
 			continue
 		}
-		data, err := store.IntakeNote(l.name, f.kind, src, f.now.Format(dayLayout), bulletList(l.items), nil)
+		data, err := store.IntakeNoteWithPeople(l.name, f.kind, src, f.now.Format(dayLayout), bulletList(l.items), nil, people)
 		if err == nil {
 			err = f.create(l.name, data)
 		}
@@ -222,10 +221,14 @@ func sourceOr(s string) string {
 	return strings.TrimSpace(s)
 }
 
-// setSource changes the source property of _source.md.
-func (f *Folder) setSource(value string) error {
+// setSourceProps sets the source (unless it is a web address, which stays)
+// and the people of _source.md, as one edit.
+func (f *Folder) setSourceProps(source string, people []string) error {
 	act, err := f.s.Edit(filepath.Join(f.Rel, SourceFile), func(fm *store.Frontmatter) {
-		fm.SetString("source", value)
+		if f.src.Kind != loader.Web {
+			fm.SetString("source", source)
+		}
+		fm.SetStringList("people", people)
 	})
 	if err != nil {
 		return err

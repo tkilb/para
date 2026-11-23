@@ -9,6 +9,7 @@ Rules:
 - Put action items only in the actions list, never inside a note. Keep each action short and include the owner and any date when the source gives them. Leave the list empty when there are none.
 - Put facts in the facts list as well as in the notes. A fact is one short, standalone statement the source gives: a definition, rule, number, name, date or decision, which makes sense without the note around it. The goal is to capture knowledge the reader may not already have. Leave the list empty when there are none.
 - Put conclusions in the conclusions list as well as in the notes. A conclusion is one short, standalone statement of what the source settled, decided or found out, with the reason or owner when the source gives one. It may repeat a fact or a note. Leave the list empty when there are none.
+- people: the people who take part in the source: speakers in a transcript, authors, and attendees or owners the source names. Write each as first name and last initial with a period, such as "Tyler K.", even when the source gives the full name or a different form. Skip anyone whose last name or initial the source does not give, and never guess one. List each person once. Leave the list empty when there are none.
 - Ignore small talk and pleasantries: greetings, weekend plans, jokes, scheduling niceties, "can you hear me" and thanks.
 - Do not invent anything. Write only what the source supports. If something is unclear or disputed, say so in the note.
 - Write each note body in Markdown, in plain language. Use short paragraphs and bullet lists. Do not repeat the title as a heading.
@@ -18,4 +19,4 @@ Rules:
 - source: exactly one of meeting, confluence, slack, document, adhoc. Use meeting for a call or transcript, and adhoc when you cannot tell.
 
 Reply with JSON only, with no text before or after it, in this shape:
-{"topic": "...", "source": "...", "notes": [{"title": "...", "body": "...", "tags": ["..."]}], "actions": ["..."], "facts": ["..."], "conclusions": ["..."]}
+{"topic": "...", "source": "...", "notes": [{"title": "...", "body": "...", "tags": ["..."]}], "actions": ["..."], "facts": ["..."], "conclusions": ["..."], "people": ["..."]}

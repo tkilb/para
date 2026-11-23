@@ -229,8 +229,8 @@ func TestSchemaMatchesTheParseContract(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal([]byte(Schema), &s))
 	assert.Equal(t, "object", s.Type)
-	assert.ElementsMatch(t, []string{"topic", "source", "notes", "actions", "facts", "conclusions"}, s.Required)
-	for _, k := range []string{"topic", "source", "notes", "actions", "facts", "conclusions"} {
+	assert.ElementsMatch(t, []string{"topic", "source", "notes", "actions", "facts", "conclusions", "people"}, s.Required)
+	for _, k := range []string{"topic", "source", "notes", "actions", "facts", "conclusions", "people"} {
 		assert.Contains(t, s.Properties, k)
 	}
 }

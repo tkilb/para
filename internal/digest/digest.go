@@ -20,6 +20,8 @@ const (
 	MaxBodyRunes = 20000
 	// MaxTags is how many tags a note keeps.
 	MaxTags = 8
+	// MaxPeople is how many people are kept.
+	MaxPeople = 50
 	// MaxActions is how many action items are kept.
 	MaxActions = 100
 	// MaxActionRunes is the longest action item kept.
@@ -67,6 +69,9 @@ type Digest struct {
 	// Conclusions are what the source settled, decided or found out, with the
 	// reason or owner when it gives one. They may repeat the notes and facts.
 	Conclusions []string
+	// People are those who take part in the source, each as first name and
+	// last initial, such as "Tyler K.". They go on every note of the import.
+	People []string
 	// Unmerged is set when a large source was split and the merge failed, so
 	// the notes of the parts are kept side by side. The caller warns.
 	Unmerged bool

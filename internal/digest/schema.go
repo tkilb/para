@@ -11,5 +11,6 @@ const Schema = `{"type":"object","properties":{` +
 	`"required":["title","body","tags"]}},` +
 	`"actions":{"type":"array","items":{"type":"string"}},` +
 	`"facts":{"type":"array","items":{"type":"string"}},` +
-	`"conclusions":{"type":"array","items":{"type":"string"}}},` +
-	`"required":["topic","source","notes","actions","facts","conclusions"]}`
+	`"conclusions":{"type":"array","items":{"type":"string"}},` +
+	`"people":{"type":"array","items":{"type":"string"}}},` +
+	`"required":["topic","source","notes","actions","facts","conclusions","people"]}`

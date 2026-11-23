@@ -65,3 +65,24 @@ func TestExtractedNote(t *testing.T) {
 	assert.Empty(t, ParseNote("P.md", plain).Frontmatter.Get("related").Content, "no links means an empty related property")
 	assert.Equal(t, "daily 2026-10-29", ParseNote("P.md", plain).Frontmatter.Get("source").Value)
 }
+
+func TestIntakeNoteWithPeople(t *testing.T) {
+	data, err := IntakeNoteWithPeople("n.md", KindUnset, "meeting", "2026-10-30", "x\n", nil, []string{"Tyler K.", "Amber D."})
+	require.NoError(t, err)
+	n := ParseNote("n.md", data)
+	require.NoError(t, n.FrontmatterErr)
+	people := n.Frontmatter.Get("people")
+	require.NotNil(t, people)
+	require.Len(t, people.Content, 2)
+	assert.Equal(t, "Tyler K.", people.Content[0].Value)
+	assert.Equal(t, "Amber D.", people.Content[1].Value)
+}
+
+func TestIntakeNoteHasNoPeopleUnlessGiven(t *testing.T) {
+	data, err := IntakeNote("n.md", KindUnset, "quick", "2026-10-30", "x\n", nil)
+	require.NoError(t, err)
+	n := ParseNote("n.md", data)
+	people := n.Frontmatter.Get("people")
+	require.NotNil(t, people, "the standard property is there")
+	assert.Empty(t, people.Content)
+}

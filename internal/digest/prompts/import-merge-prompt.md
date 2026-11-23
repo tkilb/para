@@ -8,9 +8,10 @@ Rules:
 - Keep action items only in the actions list, never inside a note. Merge duplicate actions and keep the owner and date when given.
 - Merge duplicate facts in the facts list, keeping each one short and standalone. Facts may also appear in notes.
 - Merge duplicate conclusions in the conclusions list, keeping each one short and standalone and the reason or owner when given. Conclusions may also appear in notes and facts.
+- people: combine the people of every part into one list with each person once, in the form first name and last initial with a period, such as "Tyler K.". Do not add anyone who is not in the partial results.
 - Keep the same note format: a short plain title with no slashes, colons or brackets, a Markdown body, and two to five lowercase tags using only letters, digits, hyphens, underscores and slashes.
 - topic: two to six words naming the whole source.
 - source: exactly one of meeting, confluence, slack, document, adhoc, taken from the partial results.
 
 Reply with JSON only, with no text before or after it, in this shape:
-{"topic": "...", "source": "...", "notes": [{"title": "...", "body": "...", "tags": ["..."]}], "actions": ["..."], "facts": ["..."], "conclusions": ["..."]}
+{"topic": "...", "source": "...", "notes": [{"title": "...", "body": "...", "tags": ["..."]}], "actions": ["..."], "facts": ["..."], "conclusions": ["..."], "people": ["..."]}

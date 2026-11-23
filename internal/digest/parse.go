@@ -21,6 +21,7 @@ type rawDigest struct {
 	Actions     []string  `json:"actions"`
 	Facts       []string  `json:"facts"`
 	Conclusions []string  `json:"conclusions"`
+	People      []string  `json:"people"`
 }
 
 type rawNote struct {
@@ -54,6 +55,7 @@ func Parse(data []byte, sources []string) (Digest, error) {
 		Actions:     cleanActions(raw.Actions),
 		Facts:       cleanFacts(raw.Facts),
 		Conclusions: cleanConclusions(raw.Conclusions),
+		People:      cleanPeople(raw.People),
 	}
 	if len(d.Notes) == 0 && len(d.Actions) == 0 && len(d.Facts) == 0 && len(d.Conclusions) == 0 {
 		return Digest{}, ErrEmpty
