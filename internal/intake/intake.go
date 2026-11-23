@@ -86,6 +86,12 @@ func Capture(s store.Store, now time.Time, kind store.Kind, source, title, body 
 // such as "projects/alpha". An empty dir means the inbox. A missing folder is
 // created, and one outside the notebook is refused.
 func CaptureIn(s store.Store, now time.Time, dir string, kind store.Kind, source, title, body string, tags []string) (Result, error) {
+	return CaptureInWithPeople(s, now, dir, kind, source, title, body, tags, nil)
+}
+
+// CaptureInWithPeople is CaptureIn for a note that also names the people it is
+// about. An empty list writes no people.
+func CaptureInWithPeople(s store.Store, now time.Time, dir string, kind store.Kind, source, title, body string, tags, people []string) (Result, error) {
 	if dir == "" {
 		dir = inboxDir
 	}
@@ -98,7 +104,7 @@ func CaptureIn(s store.Store, now time.Time, dir string, kind store.Kind, source
 		text = body + "\n"
 	}
 	return createUniqueIn(s, dir, name, func(final string) ([]byte, error) {
-		return store.IntakeNote(final, kind, source, now.Format(dayLayout), text, tags)
+		return store.IntakeNoteWithPeople(final, kind, source, now.Format(dayLayout), text, tags, people)
 	})
 }
 

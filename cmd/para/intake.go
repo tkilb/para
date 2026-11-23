@@ -31,7 +31,7 @@ func (m model) startQuickAdd() (model, tea.Cmd) {
 		if err != nil {
 			return m.reopenForm(v, noteform.FieldTags, err)
 		}
-		res, err := intake.CaptureIn(m.store, time.Now(), m.para.Dir(), v.Kind, v.Source, v.Title, v.Body, tags)
+		res, err := intake.CaptureInWithPeople(m.store, time.Now(), m.para.Dir(), v.Kind, v.Source, v.Title, v.Body, tags, intake.ParseNames(v.People))
 		if errors.Is(err, intake.ErrEmpty) {
 			return m.reopenForm(v, noteform.FieldTitle, err)
 		}

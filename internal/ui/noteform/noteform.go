@@ -1,6 +1,6 @@
 // Package noteform implements the Add Note form: a Title, an optional
-// Template chooser, a multi-line Body, Kind and Source choosers and a Tags
-// field, each in its own bordered box with the
+// Template chooser, a multi-line Body, Kind and Source choosers, a Tags field
+// and a People field, each in its own bordered box with the
 // field name in the border and the focused box highlighted, as in lazytask's
 // add-task form. Tab and Shift+Tab move between the fields (not the arrows,
 // which the body's text area needs for its cursor). The body scrolls within a
@@ -38,6 +38,8 @@ const (
 	FieldSource
 	// FieldTags is the single-line tag list.
 	FieldTags
+	// FieldPeople is the single-line, comma separated list of people.
+	FieldPeople
 
 	fieldCount
 )
@@ -48,19 +50,21 @@ const (
 	screenMargin = 8 // columns and rows kept free around the form
 	lineBoxRows  = 3 // a one-line box: its line plus the border
 	boxChrome    = 2 // a box's top and bottom border
-	lineBoxes    = 4 // the title, kind, source and tags boxes
+	lineBoxes    = 5 // the title, kind, source, tags and people boxes
 	minBodyRows  = 3 // visible body lines, at the smallest
 	maxBodyRows  = 8 // and at the largest
 	titleLimit   = 120
 	tagsLimit    = 200
+	peopleLimit  = 200
 	bodyLimit    = 20000
 	cursorCell   = 1 // the cell a text box's cursor needs beyond its width
 
-	titlePlaceholder = "required"
-	bodyPlaceholder  = "optional; enter starts a new line"
-	tagsPlaceholder  = "optional; comma or space separated"
-	noKindMeaning    = "No kind yet"
-	noTemplate       = "none"
+	titlePlaceholder  = "required"
+	bodyPlaceholder   = "optional; enter starts a new line"
+	tagsPlaceholder   = "optional; comma or space separated"
+	peoplePlaceholder = "optional; comma separated, such as Tyler K., Amber D."
+	noKindMeaning     = "No kind yet"
+	noTemplate        = "none"
 )
 
 // hints are the key hints for each focused field, shown on the bottom border
@@ -72,6 +76,7 @@ var hints = [fieldCount]string{
 	FieldKind:     "(type) jump  (←/→) change  (⌫) clear  (↑/↓) move  (enter) save  (esc) cancel",
 	FieldSource:   "(type) jump  (←/→) change  (⌫) first  (↑/↓) move  (enter) save  (esc) cancel",
 	FieldTags:     "(tab/↑↓) move  (enter) save  (esc) cancel",
+	FieldPeople:   "(tab/↑↓) move  (enter) save  (esc) cancel",
 }
 
 // Values are what the user entered.
@@ -83,6 +88,8 @@ type Values struct {
 	Source string
 	// Tags is the tags text as typed, to be parsed by the caller.
 	Tags string
+	// People is the people text as typed, to be parsed by the caller.
+	People string
 	// Template is the chosen template's name, "" for none.
 	Template string
 }
@@ -102,6 +109,7 @@ type Model struct {
 	title   textinput.Model
 	body    textarea.Model
 	tags    textinput.Model
+	people  textinput.Model
 	kinds   []store.Kind // unset first, then the six kinds
 	kindIdx int
 	// kindTyped is the letters typed in the Kind field to jump to a kind;
@@ -155,8 +163,13 @@ func New(name string, sources []string, screenWidth, screenHeight int) (Model, t
 	tags.Placeholder = tagsPlaceholder
 	tags.CharLimit = tagsLimit
 
+	people := textinput.New()
+	people.Prompt = ""
+	people.Placeholder = peoplePlaceholder
+	people.CharLimit = peopleLimit
+
 	m := Model{
-		name: name, title: title, body: body, tags: tags,
+		name: name, title: title, body: body, tags: tags, people: people,
 		kinds:   append([]store.Kind{store.KindUnset}, store.Kinds()...),
 		sources: sources,
 	}
@@ -171,6 +184,7 @@ func (m Model) WithValues(v Values, f Field) (Model, tea.Cmd) {
 	m.title.SetValue(v.Title)
 	m.body.SetValue(v.Body)
 	m.tags.SetValue(v.Tags)
+	m.people.SetValue(v.People)
 	for i, k := range m.kinds {
 		if k == v.Kind {
 			m.kindIdx = i
@@ -205,6 +219,7 @@ func (m Model) Resize(screenWidth, screenHeight int) Model {
 	// cell so a full box does not wrap and make the form jump as it blinks.
 	m.title.Width = inner - cursorCell
 	m.tags.Width = inner - cursorCell
+	m.people.Width = inner - cursorCell
 	m.body.SetWidth(inner)
 	m.body.SetHeight(m.bodyRows)
 	return m
@@ -214,7 +229,7 @@ func (m Model) Resize(screenWidth, screenHeight int) Model {
 func (m Model) Values() Values {
 	return Values{
 		Title: m.title.Value(), Body: m.body.Value(), Kind: m.kinds[m.kindIdx],
-		Source: m.sources[m.srcIdx], Tags: m.tags.Value(), Template: m.TemplateName(),
+		Source: m.sources[m.srcIdx], Tags: m.tags.Value(), People: m.people.Value(), Template: m.TemplateName(),
 	}
 }
 
@@ -232,6 +247,7 @@ func (m Model) focus(f Field) (Model, tea.Cmd) {
 	m.title.Blur()
 	m.body.Blur()
 	m.tags.Blur()
+	m.people.Blur()
 	var cmd tea.Cmd
 	switch f {
 	case FieldTitle:
@@ -240,6 +256,8 @@ func (m Model) focus(f Field) (Model, tea.Cmd) {
 		cmd = m.body.Focus()
 	case FieldTags:
 		cmd = m.tags.Focus()
+	case FieldPeople:
+		cmd = m.people.Focus()
 	}
 	return m, cmd
 }
@@ -281,6 +299,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.srcIdx, m.srcTyped = typeSelect(msg, m.sources, m.srcIdx, m.srcTyped, 0)
 	case FieldTags:
 		m.tags, cmd = m.tags.Update(msg)
+	case FieldPeople:
+		m.people, cmd = m.people.Update(msg)
 	}
 	return m, cmd
 }
@@ -352,11 +372,12 @@ func followCursor(t textarea.Model) textarea.Model {
 
 // Blink forwards a non-key message, such as a cursor blink, to the fields.
 func (m Model) Blink(msg tea.Msg) (Model, tea.Cmd) {
-	var c1, c2, c3 tea.Cmd
+	var c1, c2, c3, c4 tea.Cmd
 	m.title, c1 = m.title.Update(msg)
 	m.body, c2 = m.body.Update(msg)
 	m.tags, c3 = m.tags.Update(msg)
-	return m, tea.Batch(c1, c2, c3)
+	m.people, c4 = m.people.Update(msg)
+	return m, tea.Batch(c1, c2, c3, c4)
 }
 
 // View draws the boxes, one above the other.
@@ -377,9 +398,10 @@ func (m Model) View() string {
 	kindBox := panel.Frame("Kind", m.kindLine(), inner, 1, m.focused == FieldKind)
 	sourceBox := panel.Frame("Source", m.sourceLine(), inner, 1, m.focused == FieldSource)
 
-	tagsFooter := panel.Footer{Right: hints[m.focused], Tint: true}
-	tagsBox := panel.Frame("Tags", m.tags.View(), inner, 1, m.focused == FieldTags, tagsFooter)
-	return strings.Join(append(boxes, bodyBox, kindBox, sourceBox, tagsBox), "\n")
+	tagsBox := panel.Frame("Tags", m.tags.View(), inner, 1, m.focused == FieldTags)
+	peopleFooter := panel.Footer{Right: hints[m.focused], Tint: true}
+	peopleBox := panel.Frame("People", m.people.View(), inner, 1, m.focused == FieldPeople, peopleFooter)
+	return strings.Join(append(boxes, bodyBox, kindBox, sourceBox, tagsBox, peopleBox), "\n")
 }
 
 // templateLine shows the chosen template, or none, between arrows.
