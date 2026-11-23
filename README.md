@@ -120,7 +120,7 @@ Add your own kinds, or change how these look, with the `kinds` list in the confi
 
 ## Keys
 
-Every long list (the PARA panel, the finders, the text search and the pickers) scrolls with a margin: the cursor moves inside the window and the list scrolls only when it comes within three rows of the top or bottom, until the list ends. See `docs/scroll-qa.md`.
+Every long list (the PARA panel, the finders, the text search and the pickers) scrolls with a margin: the cursor moves inside the window and the list scrolls only when it comes within three rows of the top or bottom, until the list ends.
 
 **Anywhere**
 
@@ -245,7 +245,7 @@ para keeps images as plain `.png` files in the notebook. Nothing is added to a n
 go test ./...
 ```
 
-The tests cover the engine packages (storage, state, undo, config, intake, the import engine and its source readers, image conversion, clipboard paste and preview drawing, the command line and the link index). None calls a real model or the network. The interface has no automated tests; each change ships with a manual check instead, such as `docs/import-qa.md` for the import and `docs/image-qa.md` for images.
+The tests cover the engine packages (storage, state, undo, config, intake, the import engine and its source readers, image conversion, clipboard paste and preview drawing, the command line and the link index). None calls a real model or the network. The interface has no automated tests.
 
 ## More
 

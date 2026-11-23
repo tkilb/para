@@ -2,8 +2,7 @@
 
 A TUI note browser in Go with Bubble Tea, modeled on `~/Git/lazytask`.
 There is no plan file. `README.md`, the code and its tests record the current
-behavior; read them before changing behavior. `docs/import-qa.md` is the manual
-check for the import and `docs/image-qa.md` the one for images.
+behavior; read them before changing behavior.
 
 ## Commands
 
@@ -23,7 +22,7 @@ Tests cover engine packages only (`internal/store`, `internal/state`,
 `internal/digest`, `internal/loader`, `internal/clip`, `internal/templates`, `internal/imgfmt`, `internal/imgpreview`, `internal/attach`, `internal/marks`, the link index). Use table-driven tests
 against temp directories; never touch a real notebook or the real state
 database. UI packages (`cmd/para`, `internal/ui/*`) have no automated
-tests; each UI chunk ships a manual QA note instead. This deliberately
+tests, and no QA note is written for them. This deliberately
 deviates from the organization 80% coverage policy (project owner decision).
 
 ## Workflow
