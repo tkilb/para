@@ -64,6 +64,11 @@ func Open(path string) (Picture, error) {
 	if err != nil {
 		return Picture{}, ErrUnreadable
 	}
+	return FromBytes(raw)
+}
+
+// FromBytes decodes the image in raw, checked like a file read by Open.
+func FromBytes(raw []byte) (Picture, error) {
 	data, err := imgfmt.ToPNG(raw)
 	if err != nil {
 		return Picture{}, ErrUnreadable

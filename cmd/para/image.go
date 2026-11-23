@@ -7,6 +7,7 @@ import (
 
 	"github.com/tkilb/para/internal/attach"
 	"github.com/tkilb/para/internal/imgpreview"
+	"github.com/tkilb/para/internal/pdfpreview"
 	"github.com/tkilb/para/internal/store"
 	"github.com/tkilb/para/internal/textsafe"
 	"github.com/tkilb/para/internal/ui/content"
@@ -116,7 +117,7 @@ func (m model) imagePreview(rel, label string) content.Model {
 	if err != nil {
 		return m.content.Fail(rel, err)
 	}
-	pic, err := imgpreview.Open(file)
+	pic, err := openPicture(file)
 	if err != nil {
 		return m.content.Fail(rel, err)
 	}
@@ -140,4 +141,16 @@ func (m model) showImage(entry store.Entry) model {
 	m.title = m.title.Set(entry.Name)
 	m.content = m.imagePreview(entry.Rel, "")
 	return m
+}
+
+// openPicture decodes the image at file; for a PDF it is the first page.
+func openPicture(file string) (imgpreview.Picture, error) {
+	if store.ImageExt(file) != store.PDFExt {
+		return imgpreview.Open(file)
+	}
+	data, err := pdfpreview.FirstPage(file)
+	if err != nil {
+		return imgpreview.Picture{}, err
+	}
+	return imgpreview.FromBytes(data)
 }

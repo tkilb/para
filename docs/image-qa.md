@@ -139,13 +139,24 @@ The SVG is stored unchanged; the preview shows "cannot read the image" for it un
 
 ## PDF attachments, chunk 1: listing and bundling
 
-PDFs are listed, bundled, renamed, deleted and opened like images. The page preview is chunk 2 and import is chunk 3, so until then the preview shows "cannot read the image".
+PDFs are listed, bundled, renamed, deleted and opened like images. The page preview is chunk 2 (below) and import is chunk 3.
 
 | # | Step | Expect |
 | --- | --- | --- |
-| 75 | Copy `paper.pdf` into a folder by hand and look at PARA | The row shows the `PDF` badge and the name `paper` (no extension). Opening it shows "cannot read the image" for now. |
+| 75 | Copy `paper.pdf` into a folder by hand and look at PARA | The row shows the `PDF` badge and the name `paper` (no extension). Opening it shows page 1 (see the next section). |
 | 76 | Put `paper.png` and `paper.pdf` in one folder | The PNG reads `paper` and the PDF reads `paper.pdf`. |
 | 77 | Select `paper.pdf`, press `y`, select a note, press `p` | The PDF is bundled: the note row gets the `❖` mark and a tab `paper` appears. `x` moves it instead. `u` undoes either. |
 | 78 | Press `r` on `paper.pdf`, type `report` | The file becomes `report.pdf`. Typing `report.png` gives `report.png.pdf`. |
 | 79 | Press `d` on a PDF row, then `u` | The PDF goes to the trash and comes back. |
 | 80 | Press `o` on a PDF row, and on a PDF tab of a note | The PDF opens in the system's preferred PDF viewer. |
+
+## PDF attachments, chunk 2: page preview
+
+Page 1 is drawn by `pdftoppm` (poppler; `brew install poppler`), at most 10 seconds, shown like an image preview.
+
+| # | Step | Expect |
+| --- | --- | --- |
+| 81 | Select a PDF row | Content shows page 1, scaled to fit, with a caption such as `1000 x 500 px, 12.3 KB`. Resize the window: the preview redraws. |
+| 82 | Bundle the PDF with a note and open its tab | The tab shows the same page 1 with the `1/1 name` caption. |
+| 83 | Select a file named `bad.pdf` that holds plain text | Content shows "cannot read the PDF"; PARA does not hang or crash. |
+| 84 | Start PARA with `pdftoppm` off `PATH` and select a PDF | Content shows "install poppler (pdftoppm) to preview a PDF"; `o` still opens the PDF. |
