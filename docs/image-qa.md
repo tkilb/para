@@ -179,3 +179,4 @@ Page 1 is drawn by `pdftoppm` (poppler; `brew install poppler`), at most 10 seco
 | 91 | Copy a PDF in Finder (Cmd+C), press `I` and leave the box empty | The hint says `PDF file, N bytes, saved as is`. Enter saves `name.pdf` byte for byte, not a PNG thumbnail, and `u` undoes it. |
 | 92 | Copy an image file in Finder, press `I` and leave the box empty | The image file is saved under its own name as a PNG. |
 | 93 | Take a screenshot to the clipboard, press `I` and leave the box empty | The image is saved as before, named for the date and time. |
+| 94 | Copy a PDF in Finder that lives in `~/Downloads` or on the Desktop, press `I`, leave the box empty | Same as step 91. Finder may give a file reference (`/.file/id=…`) instead of a path; para resolves it to the real file. |

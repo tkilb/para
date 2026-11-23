@@ -227,9 +227,15 @@ func execRun(ctx context.Context, name string, args ...string) ([]byte, error) {
 var fileTypes = []string{"text/uri-list"}
 
 // macFileScript prints the address of the file copied in Finder, or nothing.
+// Finder may offer a file reference ("file:///.file/id=..."), which names no
+// path; filePathURL turns it into the file's real address.
 const macFileScript = `ObjC.import('AppKit');
 var s = $.NSPasteboard.generalPasteboard.stringForType('public.file-url');
-s.isNil() ? '' : ObjC.unwrap(s);`
+if (s.isNil()) { ''; } else {
+  var u = $.NSURL.URLWithString(s);
+  var p = u.isNil() ? $() : u.filePathURL;
+  ObjC.unwrap(p.isNil() ? s : p.absoluteString);
+}`
 
 // File returns the path of the file copied on the clipboard (the first, when
 // several are), or ErrNoFile when none is. Copying a file in a file manager
