@@ -23,6 +23,13 @@ type Source interface {
 	Text(ctx context.Context) (string, error)
 }
 
+// FileSource is a Source that can also report a file copied on the clipboard,
+// as Finder does when a file is copied: the file's path, beside a thumbnail
+// of it as an image. A Source without it only offers the image and text.
+type FileSource interface {
+	File(ctx context.Context) (string, error)
+}
+
 // Result describes a saved image.
 type Result struct {
 	// Rel is the new file, relative to the notebook root.

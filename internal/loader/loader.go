@@ -7,6 +7,7 @@ package loader
 import (
 	"errors"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/tkilb/para/internal/store"
@@ -100,5 +101,27 @@ func Classify(input string) Input {
 	case strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://"):
 		return Input{Kind: Web, Value: v}
 	}
-	return Input{Kind: File, Value: v}
+	return Input{Kind: File, Value: unquotePath(v)}
+}
+
+// unquotePath undoes the quoting a terminal or file manager adds to a path
+// with spaces: a pair of matching quotes around it, or a backslash before a
+// space or other punctuation mark. A backslash before a letter or digit is
+// part of the name, so it stays.
+func unquotePath(v string) string {
+	if n := len(v); n >= 2 && (v[0] == '\'' || v[0] == '"') && v[n-1] == v[0] {
+		return v[1 : n-1]
+	}
+	if !strings.Contains(v, `\`) {
+		return v
+	}
+	var b strings.Builder
+	rs := []rune(v)
+	for i := 0; i < len(rs); i++ {
+		if rs[i] == '\\' && i+1 < len(rs) && !unicode.IsLetter(rs[i+1]) && !unicode.IsDigit(rs[i+1]) {
+			i++
+		}
+		b.WriteRune(rs[i])
+	}
+	return b.String()
 }

@@ -39,6 +39,9 @@ const (
 func ProbeClipboard(ctx context.Context, clip Source) (string, bool) {
 	ctx, cancel := context.WithTimeout(ctx, pasteTimeout)
 	defer cancel()
+	if path, ok := copiedFile(ctx, clip); ok && loader.IsPDFPath(path) {
+		return probePDF(path)
+	}
 	if raw, err := clip.Image(ctx); err == nil {
 		return describeImage(raw, clipboardSVG, clipboardRaster)
 	}

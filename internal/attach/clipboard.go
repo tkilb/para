@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"io"
+	"net/url"
 	"os"
 	"os/exec"
 	"runtime"
@@ -22,6 +23,8 @@ var (
 	ErrNoText = errors.New("the clipboard has no text")
 	// ErrNoTool reports a missing clipboard program on Linux.
 	ErrNoTool = errors.New("install wl-clipboard (wl-paste) or xclip to paste images")
+	// ErrNoFile reports a clipboard that holds no copied file.
+	ErrNoFile = errors.New("the clipboard has no file")
 	// ErrClipboard reports a clipboard that could not be read.
 	ErrClipboard = errors.New("cannot read the clipboard")
 )
@@ -218,4 +221,52 @@ func execRun(ctx context.Context, name string, args ...string) ([]byte, error) {
 		return nil, err
 	}
 	return out, readErr
+}
+
+// fileTypes are the clipboard types that list copied files, on Linux.
+var fileTypes = []string{"text/uri-list"}
+
+// macFileScript prints the address of the file copied in Finder, or nothing.
+const macFileScript = `ObjC.import('AppKit');
+var s = $.NSPasteboard.generalPasteboard.stringForType('public.file-url');
+s.isNil() ? '' : ObjC.unwrap(s);`
+
+// File returns the path of the file copied on the clipboard (the first, when
+// several are), or ErrNoFile when none is. Copying a file in a file manager
+// puts its path there beside a thumbnail image, so a caller that wants the
+// file asks for it before the image.
+func (c Clipboard) File(ctx context.Context) (string, error) {
+	switch c.GOOS {
+	case "darwin":
+		out, err := c.Run(ctx, "osascript", "-l", "JavaScript", "-e", macFileScript)
+		if err != nil {
+			return "", ErrClipboard
+		}
+		return fileURLPath(string(out))
+	case "linux":
+		out, err := c.linuxRead(ctx, fileTypes, ErrNoFile)
+		if err != nil {
+			return "", err
+		}
+		return fileURLPath(string(out))
+	}
+	return "", ErrClipboard
+}
+
+// fileURLPath returns the path in the first file:// address of list, which
+// is one address or a text/uri-list. Only a local file is accepted: a host
+// other than localhost, another scheme or a damaged address is ErrNoFile.
+func fileURLPath(list string) (string, error) {
+	for _, line := range strings.Split(list, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		u, err := url.Parse(line)
+		if err != nil || u.Scheme != "file" || (u.Host != "" && u.Host != "localhost") || u.Path == "" {
+			return "", ErrNoFile
+		}
+		return u.Path, nil
+	}
+	return "", ErrNoFile
 }

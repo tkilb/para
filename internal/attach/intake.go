@@ -50,6 +50,16 @@ func Import(ctx context.Context, s store.Store, clip Source, dir, input, inboxDi
 func importClipboard(ctx context.Context, s store.Store, clip Source, dir string, now time.Time) (Result, bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, pasteTimeout)
 	defer cancel()
+	if path, ok := copiedFile(ctx, clip); ok {
+		switch {
+		case loader.IsPDFPath(path):
+			res, err := importPDF(s, dir, path, now)
+			return res, true, err
+		case loader.IsImagePath(path):
+			res, err := importFile(s, dir, path, now)
+			return res, true, err
+		}
+	}
 	raw, err := clip.Image(ctx)
 	if err != nil {
 		return importClipboardText(ctx, s, clip, dir, now)
@@ -125,4 +135,16 @@ func fileStem(name, ext string, now time.Time) string {
 		return now.Format(nameLayout)
 	}
 	return strings.TrimSuffix(clean, filepath.Ext(clean))
+}
+
+// copiedFile returns the path of the file copied on the clipboard, when clip
+// can tell. Any failure is "no file": the caller then reads the image or text
+// as before.
+func copiedFile(ctx context.Context, clip Source) (string, bool) {
+	fs, ok := clip.(FileSource)
+	if !ok {
+		return "", false
+	}
+	path, err := fs.File(ctx)
+	return path, err == nil && path != ""
 }

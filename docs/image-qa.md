@@ -170,3 +170,12 @@ Page 1 is drawn by `pdftoppm` (poppler; `brew install poppler`), at most 10 seco
 | 87 | Rename a text file to `fake.pdf` and import it | The hint says `PDF file, not a PDF`. Enter shows "the file is not a PDF" with no path, writes nothing and does not send it to the agent. |
 | 88 | Type the path of a PDF over 32 MB, a folder named `x.pdf`, and a missing `none.pdf` | The hint says `too large` for the first and is the usual hint for the others. Enter refuses each with a message that shows no path. |
 | 89 | With a note in PARA, import a PDF and bundle it (`y`, then `p` on the note) | The PDF becomes a tab of the note with its page 1 preview. |
+
+## PDF attachments, chunk 4: quoted paths and a copied file
+
+| # | Step | Expect |
+| --- | --- | --- |
+| 90 | Press `I` and paste the path of a PDF whose name has spaces, in single quotes, then with each space escaped as `\ ` | The hint says `PDF file, N bytes, saved as is` both times, and Enter saves the PDF. |
+| 91 | Copy a PDF in Finder (Cmd+C), press `I` and leave the box empty | The hint says `PDF file, N bytes, saved as is`. Enter saves `name.pdf` byte for byte, not a PNG thumbnail, and `u` undoes it. |
+| 92 | Copy an image file in Finder, press `I` and leave the box empty | The image file is saved under its own name as a PNG. |
+| 93 | Take a screenshot to the clipboard, press `I` and leave the box empty | The image is saved as before, named for the date and time. |

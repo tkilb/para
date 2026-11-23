@@ -24,6 +24,15 @@ func TestClassify(t *testing.T) {
 		{"padded path", "  notes.md ", File, "notes.md"},
 		{"a bare name", "standup", File, "standup"},
 		{"a name that starts with http", "httpd-notes.md", File, "httpd-notes.md"},
+		{"single quoted path", "'/Users/me/Car Care Brief 11-20-26.pdf'", File, "/Users/me/Car Care Brief 11-20-26.pdf"},
+		{"double quoted path", `"/Users/me/a b.pdf"`, File, "/Users/me/a b.pdf"},
+		{"quoted path with padding", "  '/tmp/a b.pdf' ", File, "/tmp/a b.pdf"},
+		{"escaped spaces", `/Users/me/Car\ Care\ Brief.pdf`, File, "/Users/me/Car Care Brief.pdf"},
+		{"escaped brackets and parens", `/tmp/a\ \(1\)\ \[x\].pdf`, File, "/tmp/a (1) [x].pdf"},
+		{"a quote that does not wrap the path is kept", "/tmp/it's.pdf", File, "/tmp/it's.pdf"},
+		{"mismatched quotes are kept", "'/tmp/a.pdf\"", File, "'/tmp/a.pdf\""},
+		{"a lone quote is kept", "'", File, "'"},
+		{"a backslash before a letter is kept", `notes\todo.md`, File, `notes\todo.md`},
 		{"another scheme is a file name", "ftp://host/file", File, "ftp://host/file"},
 	}
 	for _, tt := range tests {
