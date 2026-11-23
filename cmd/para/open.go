@@ -1,7 +1,10 @@
 package main
 
 import (
+	"path"
+
 	"github.com/tkilb/para/internal/clip"
+	"github.com/tkilb/para/internal/store"
 	"github.com/tkilb/para/internal/ui/popup"
 )
 
@@ -10,6 +13,9 @@ import (
 // or https address, and a folder, only get a notice.
 func (m model) openWeb() model {
 	entry, ok := m.para.SelectedNote()
+	if ok && (entry.IsImage || m.bundleTab > 0) {
+		return m.openImage(entry)
+	}
 	if !ok {
 		return m.notify(popup.Info, "Select a note with a web address in its source to open it.")
 	}
@@ -26,6 +32,26 @@ func (m model) openWeb() model {
 		return m.notify(popup.Info, "This note has no web address in its source.")
 	}
 	if err := m.openURL(u.String()); err != nil {
+		return m.notify(popup.Warning, capitalize(err.Error())+".")
+	}
+	return m
+}
+
+// openImage opens the image on show, an image file or the open image tab of
+// a note, in the system's preferred viewer.
+func (m model) openImage(entry store.Entry) model {
+	rel := entry.Rel
+	if !entry.IsImage {
+		if m.bundleTab < 1 || m.bundleTab > len(m.bundle) {
+			return m
+		}
+		rel = path.Join(store.SidecarOf(entry.Rel), m.bundle[m.bundleTab-1])
+	}
+	file, err := m.store.Path(rel)
+	if err != nil {
+		return m.notify(popup.Warning, "Could not find the image: "+err.Error()+".")
+	}
+	if err := m.openFile(file); err != nil {
 		return m.notify(popup.Warning, capitalize(err.Error())+".")
 	}
 	return m

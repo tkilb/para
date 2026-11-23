@@ -221,7 +221,9 @@ type model struct {
 	// still running.
 	fetcher *clip.Fetcher
 	// openURL hands a web address to the browser.
-	openURL  func(string) error
+	openURL func(string) error
+	// openFile hands a file to the system's preferred application.
+	openFile func(string) error
 	clipping int
 	// writeClipboard copies text to the system clipboard (a yank).
 	writeClipboard func(string) error
@@ -277,7 +279,7 @@ func initialModel(s store.Store) model {
 		imageClip: attach.NewClipboard(), imageProto: imgpreview.Detect(os.Getenv),
 		store: s, focus: panelPARA, para: para.New(s),
 		content: content.New(), info: info.New(), related: related.New(), title: title.New(), history: &undo.Stack{}, purged: map[string]bool{},
-		syncGate: gitsync.NewGate(syncDebounce), helpSearch: helppopup.NoSearch, sources: config.DefaultSources, writeClipboard: clipboard.WriteAll, fetcher: clip.NewFetcher(), openURL: browser.Open,
+		syncGate: gitsync.NewGate(syncDebounce), helpSearch: helppopup.NoSearch, sources: config.DefaultSources, writeClipboard: clipboard.WriteAll, fetcher: clip.NewFetcher(), openURL: browser.Open, openFile: browser.OpenFile,
 	}
 }
 

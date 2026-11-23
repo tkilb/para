@@ -128,3 +128,11 @@ The SVG is stored unchanged; the preview shows "cannot read the image" for it un
 | 69 | Rename a copy of `logo.svg` to `fake.png`, press `I`, type its path | The hint says `SVG file`; the file is saved as `fake.svg`, not `fake.png`. Rename a PNG to `real.svg` and import it: it is saved as `real.png`. |
 | 70 | Save `<svg><rect/></svg>` (no `xmlns`) as `bare.svg`, press `I`, type its path | The hint says `SVG file, no SVG namespace`, and Enter shows an error that names the missing SVG namespace, writes nothing and does not send it to the agent. The same text on the clipboard gets the usual text hint and goes to the text import. |
 | 71 | Press `I` and type the path of a folder named `x.svg`, or of a named pipe | The usual hint shows, and the box does not hang. An SVG file over 4 MiB hints `SVG file, N bytes, checked on import`; Enter still applies the safety check and the 32 MiB limit. |
+
+## Opening an image in the system viewer (`o`)
+
+| # | Step | Expect |
+| --- | --- | --- |
+| 72 | Select a loose image row in PARA and press `o` | The image opens in the operating system's preferred viewer. PARA stays open and shows no notice. |
+| 73 | Select a note with bundled images, go to an image tab (`→` or `]`) and press `o` | The image of that tab opens in the viewer. On the note tab, `o` still opens the `source` web address, or shows the no-address notice. |
+| 74 | Temporarily rename the opener (for example run PARA with `open` or `xdg-open` off `PATH`) and press `o` on an image | A warning says the opener could not start; PARA does not crash. |

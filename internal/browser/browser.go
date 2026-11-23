@@ -5,7 +5,9 @@ package browser
 
 import (
 	"errors"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 
 	"github.com/tkilb/para/internal/clip"
@@ -45,6 +47,43 @@ func command(goos, raw string) (string, []string, error) {
 		return "open", []string{u.String()}, nil
 	case "linux", "freebsd", "openbsd", "netbsd":
 		return "xdg-open", []string{u.String()}, nil
+	}
+	return "", nil, ErrUnsupported
+}
+
+// ErrNotFile is returned when OpenFile gets something other than the absolute
+// path of a regular file.
+var ErrNotFile = errors.New("not an openable file")
+
+// OpenFile opens the file at path in the system's preferred application. The
+// path must be absolute and name a regular file, so it can never be taken for
+// an option.
+func OpenFile(path string) error {
+	name, args, err := fileCommand(runtime.GOOS, path)
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command(name, args...)
+	if err := cmd.Start(); err != nil {
+		return ErrOpen
+	}
+	go func() { _ = cmd.Wait() }() // reap the opener
+	return nil
+}
+
+// fileCommand returns the opener for goos and its arguments.
+func fileCommand(goos, path string) (string, []string, error) {
+	if !filepath.IsAbs(path) {
+		return "", nil, ErrNotFile
+	}
+	if info, err := os.Stat(path); err != nil || !info.Mode().IsRegular() {
+		return "", nil, ErrNotFile
+	}
+	switch goos {
+	case "darwin":
+		return "open", []string{path}, nil
+	case "linux", "freebsd", "openbsd", "netbsd":
+		return "xdg-open", []string{path}, nil
 	}
 	return "", nil, ErrUnsupported
 }
