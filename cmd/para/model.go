@@ -550,6 +550,12 @@ func (m model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m.typeKey(msg)
 		}
 	}
+	if msg.Paste {
+		// A terminal that pastes a copied file as its name (kitty's smart
+		// paste does) sends cmd+v and ctrl+v as pasted text. The text is
+		// ignored: the clipboard is read as for ctrl+v.
+		return m.pasteAttachment(), nil
+	}
 	armed := m.markArmed
 	m.markArmed = false
 	if key == "m" && m.focus == panelPARA && !armed {
