@@ -53,6 +53,18 @@ func (m model) importKey() (model, tea.Cmd) {
 	return m.openImportPrompt()
 }
 
+// pasteAttachment handles ctrl+v: it saves an image or PDF from the clipboard
+// in the folder PARA shows, by the same logic as a blank import (I). Anything
+// else on the clipboard is left alone, because text needs the agent import.
+func (m model) pasteAttachment() model {
+	inbox, _ := m.store.Path("inbox")
+	res, handled, err := attach.Import(context.Background(), m.store, m.imageClip, m.para.Dir(), "", inbox, time.Now())
+	if !handled {
+		return m.notify(popup.Info, "No image or PDF on the clipboard.")
+	}
+	return m.finishImage(res, err)
+}
+
 // importOffNotice says why a text import did not run.
 const importOffNotice = "Import is off. Set digest: enabled: true in the config file to turn it on. Imported content is then sent to the agent command."
 

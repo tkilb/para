@@ -20,6 +20,7 @@ var helpGlobalBindings = []statusbar.Binding{
 	{Key: "B", Label: "choose the notebook to open (your place in each is remembered)"},
 	{Key: "A", Label: "Add Note: add a note in the folder PARA shows (tab, ctrl+s saves)"},
 	{Key: "I", Label: "import the clipboard, a web page or a file with the agent; an image (clipboard or file) is saved instead, as a PNG, or as is for an SVG; a PDF file is saved as is; on an IMPORT_ folder, run it again"},
+	{Key: "ctrl+v", Label: "paste an image or PDF from the clipboard into the folder PARA shows, as I does with a blank entry; text is not pasted"},
 	{Key: "U", Label: "clip a web page: a title (optional) and a URL; saved in the folder PARA shows"},
 	{Key: "o", Label: "open the web address in the note's source in the browser; on an image or an image tab, open the image in the system viewer"},
 	{Key: "ctrl+t", Label: "append a template to the end of the selected note (u undoes it)"},

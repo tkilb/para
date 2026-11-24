@@ -567,6 +567,8 @@ func (m model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m, cmd = m.startQuickAdd()
 	case "I":
 		m, cmd = m.importKey()
+	case "ctrl+v":
+		m = m.pasteAttachment()
 	case "B":
 		m, cmd = m.openNotebookPicker()
 	case "M":
