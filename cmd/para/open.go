@@ -12,8 +12,12 @@ import (
 // the PARA cursor to the default browser. A note whose source is not an http
 // or https address, and a folder, only get a notice.
 func (m model) openWeb() model {
+	// A loose image or PDF row is not a note, so SelectedNote skips it.
+	if row, found := m.para.Selected(); found && row.IsImage {
+		return m.openImage(row)
+	}
 	entry, ok := m.para.SelectedNote()
-	if ok && (entry.IsImage || m.bundleTab > 0) {
+	if ok && m.bundleTab > 0 {
 		return m.openImage(entry)
 	}
 	if !ok {

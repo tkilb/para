@@ -22,7 +22,7 @@ var helpGlobalBindings = []statusbar.Binding{
 	{Key: "I", Label: "import the clipboard, a web page or a file with the agent; an image (clipboard or file) is saved instead, as a PNG, or as is for an SVG; a PDF file is saved as is; on an IMPORT_ folder, run it again"},
 	{Key: "ctrl+v", Label: "paste an image or PDF from the clipboard into the folder PARA shows, as I does with a blank entry; text is not pasted"},
 	{Key: "U", Label: "clip a web page: a title (optional) and a URL; saved in the folder PARA shows"},
-	{Key: "o", Label: "open the web address in the note's source in the browser; on an image or an image tab, open the image in the system viewer"},
+	{Key: "o", Label: "open the web address in the note's source in the browser; on an image, a PDF or an attachment tab, open the file in the system viewer"},
 	{Key: "ctrl+t", Label: "append a template to the end of the selected note (u undoes it)"},
 	{Key: "ctrl+y", Label: "glossary: fuzzy-pick a term from glossary.yaml in the notebook root (typing searches the term, then the first line of the definition, then the rest; enter shows it; ctrl+n adds, ctrl+e edits, ctrl+x deletes)"},
 	{Key: "b/t/T", Label: "open yesterday's/today's/tomorrow's daily note"},
