@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/atotto/clipboard"
@@ -13,6 +14,7 @@ import (
 	"github.com/tkilb/para/internal/config"
 	"github.com/tkilb/para/internal/digest"
 	"github.com/tkilb/para/internal/loader"
+	"github.com/tkilb/para/internal/skills"
 	"github.com/tkilb/para/internal/store"
 	"github.com/tkilb/para/internal/ui/para"
 	"github.com/tkilb/para/internal/ui/popup"
@@ -154,12 +156,21 @@ func (m model) startRerun(folder string) (model, tea.Cmd) {
 // calls run. The notebook and settings are captured now, so switching
 // notebooks meanwhile cannot send the files to the wrong one.
 func (m model) runImport(label string, rerun bool, run func(context.Context, digest.Digester, store.Store, store.Kind) (digest.Result, error, bool)) (model, tea.Cmd) {
+	return m.runImportWithPrompt(label, rerun, "", run)
+}
+
+func (m model) runImportWithCustomPrompt(label, customPrompt string, run func(context.Context, digest.Digester, store.Store, store.Kind) (digest.Result, error, bool)) (model, tea.Cmd) {
+	return m.runImportWithPrompt(label, false, customPrompt, run)
+}
+
+func (m model) runImportWithPrompt(label string, rerun bool, customPrompt string, run func(context.Context, digest.Digester, store.Store, store.Kind) (digest.Result, error, bool)) (model, tea.Cmd) {
 	m.importing++
 	m.importLabel = label
 	st, cfg, sources, kind := m.store, m.digest, m.sources, digest.ImportKind()
+	agent, agentPath := m.agent, m.agentPath
 	return m, func() tea.Msg {
 		ctx := context.Background()
-		dg, err := newDigester(cfg, sources)
+		dg, err := newDigesterWithPrompt(cfg, sources, customPrompt, agent, agentPath)
 		if err != nil {
 			return importDoneMsg{store: st, rerun: rerun, err: err, early: true}
 		}
@@ -172,13 +183,26 @@ func (m model) runImport(label string, rerun bool, run func(context.Context, dig
 // pass over the source and the merge prompt to combine the parts of a large
 // one. A prompt is the one built into para unless the config names a file.
 func newDigester(cfg config.Digest, sources []string) (digest.Digester, error) {
+	return newDigesterWithPrompt(cfg, sources, "", skills.AgentNone, "")
+}
+
+func newDigesterWithPrompt(cfg config.Digest, sources []string, customPrompt string, agent skills.Agent, agentPath string) (digest.Digester, error) {
 	prompt, err := digest.ResolvePrompt(cfg.Prompt, digest.DefaultPrompt)
 	if err != nil {
 		return nil, fmt.Errorf("the import prompt: %w", err)
 	}
+	if strings.TrimSpace(customPrompt) != "" {
+		prompt = skills.BuildImportPrompt(prompt, customPrompt)
+	}
 	mergePrompt, err := digest.ResolvePrompt(cfg.MergePrompt, digest.DefaultMergePrompt)
 	if err != nil {
 		return nil, fmt.Errorf("the merge prompt: %w", err)
+	}
+	if cfg.Command == "claude" && agent == skills.AgentAGY && agentPath != "" {
+		part := skills.AGYDigester{BinPath: agentPath, Timeout: cfg.Timeout, Prompt: prompt, Sources: sources}
+		merge := part
+		merge.Prompt = mergePrompt
+		return digest.Chunked{Part: part, Merge: merge}, nil
 	}
 	part := digest.CLI{Command: cfg.Command, Model: cfg.Model, Timeout: cfg.Timeout, Prompt: prompt, Sources: sources}
 	merge := part

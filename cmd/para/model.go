@@ -22,6 +22,7 @@ import (
 	"github.com/tkilb/para/internal/store"
 	"github.com/tkilb/para/internal/ui/clipform"
 	"github.com/tkilb/para/internal/ui/content"
+	"github.com/tkilb/para/internal/skills"
 	"github.com/tkilb/para/internal/ui/grep"
 	"github.com/tkilb/para/internal/ui/helppopup"
 	"github.com/tkilb/para/internal/ui/info"
@@ -32,6 +33,7 @@ import (
 	"github.com/tkilb/para/internal/ui/picker"
 	"github.com/tkilb/para/internal/ui/popup"
 	"github.com/tkilb/para/internal/ui/related"
+	skillsui "github.com/tkilb/para/internal/ui/skills"
 	"github.com/tkilb/para/internal/ui/statusbar"
 	"github.com/tkilb/para/internal/ui/title"
 	"github.com/tkilb/para/internal/undo"
@@ -51,7 +53,7 @@ const (
 
 var panelNames = map[panelID]string{
 	panelContent: "Content",
-	panelBlank:   "[1]",
+	panelBlank:   "1 Skills",
 	panelPARA:    "PARA",
 	panelRelated: "Related",
 	panelInfo:    "Info",
@@ -124,6 +126,21 @@ var paraBindings = []statusbar.Binding{
 	{Key: "enter", Label: "open"},
 }
 
+var skillsBindings = []statusbar.Binding{
+	{Key: "↑/↓", Label: "move"},
+	{Key: "enter", Label: "execute"},
+	{Key: "space", Label: "select"},
+	{Key: "y/x/p", Label: "yank/cut/paste"},
+	{Key: "d/D", Label: "trash/delete"},
+	{Key: "a", Label: "new"},
+	{Key: "r", Label: "rename"},
+	{Key: "e", Label: "edit"},
+	{Key: "c", Label: "copy path"},
+	{Key: "/", Label: "search"},
+	{Key: "v", Label: "visual"},
+	{Key: "esc/←", Label: "back to PARA"},
+}
+
 var relatedBindings = []statusbar.Binding{
 	{Key: "↑/↓", Label: "move"},
 	{Key: "l", Label: "add reference"},
@@ -166,8 +183,13 @@ type model struct {
 	focus   panelID
 	para    para.Model
 	content content.Model
-	info    info.Model
-	related related.Model
+	info         info.Model
+	related      related.Model
+	skills       skillsui.Model
+	agent        skills.Agent
+	agentPath    string
+	skillRunning bool
+	skillLabel   string
 	// markArmed is set by a first m in PARA: a second m, as the very next
 	// key, marks the note; any other key clears it.
 	markArmed bool
@@ -275,10 +297,11 @@ type shownNote struct {
 }
 
 func initialModel(s store.Store) model {
+	agent, agentPath, _ := skills.DetectAgent()
 	return model{
 		imageClip: attach.NewClipboard(), imageProto: imgpreview.Detect(os.Getenv),
 		store: s, focus: panelPARA, para: para.New(s),
-		content: content.New(), info: info.New(), related: related.New(), title: title.New(), history: &undo.Stack{}, purged: map[string]bool{},
+		content: content.New(), info: info.New(), related: related.New(), title: title.New(), skills: skillsui.New(), agent: agent, agentPath: agentPath, history: &undo.Stack{}, purged: map[string]bool{},
 		syncGate: gitsync.NewGate(syncDebounce), helpSearch: helppopup.NoSearch, sources: config.DefaultSources, writeClipboard: clipboard.WriteAll, fetcher: clip.NewFetcher(), openURL: browser.Open, openFile: browser.OpenFile,
 	}
 }
@@ -402,7 +425,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // grid is the panel layout for the current size. While zoomed, the focused
 // panel takes the whole grid.
 func (m model) grid() grid {
-	g := computeGrid(m.width, m.height-1)
+	g := computeGrid(m.width, m.height-1, m.focus)
 	if m.zoomed {
 		return g.zoomed(m.focus, m.width, m.height-1)
 	}
@@ -427,6 +450,8 @@ func (m model) resizePanels() model {
 	if !g.shows(m.focus) {
 		m.focus = panelPARA
 	}
+	_, skillsRows := panel.InnerSize(g.leftWidth, g.blankHeight)
+	m.skills = m.skills.Resize(skillsRows)
 	_, rows := panel.InnerSize(g.leftWidth, g.paraHeight)
 	m.para = m.para.Resize(rows)
 	bw, bh := panel.InnerSize(g.rightWidth, g.contentHeight)
@@ -454,6 +479,7 @@ func (m model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// A pending question was worded for the rows on screen, so it waits.
 		if m.pending == nil {
 			m.para = m.para.Reload()
+			m.skills = m.skills.Reload()
 			m = m.refreshLinks()
 		}
 		return m, nil
@@ -478,6 +504,12 @@ func (m model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.finishScratch(msg), tea.ClearScreen
 	case lazygitDoneMsg:
 		return m.finishLazygit(msg)
+	case skillNoteDoneMsg:
+		return m.finishSkillNote(msg)
+	case skillInteractiveDoneMsg:
+		return m.finishSkillInteractive(msg)
+	case skillEditDoneMsg:
+		return m.finishSkillEdit(msg)
 	case tea.ResumeMsg:
 		// Returning from ctrl+z: repaint everything on the alternate screen.
 		return m, tea.ClearScreen
@@ -595,6 +627,8 @@ func (m model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m = m.openWeb()
 	case "ctrl+t":
 		m, cmd = m.startAppendTemplate()
+	case "ctrl+s":
+		m, cmd = m.summonSkills()
 	case "ctrl+y":
 		m, cmd = m.openGlossary(glossary.Entry{})
 	case "b":
@@ -610,6 +644,7 @@ func (m model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "ctrl+l":
 		m.para = m.para.Reload()
 		m = m.refreshLinks()
+		m.skills = m.skills.Reload()
 		var syncCmd tea.Cmd
 		m, syncCmd = m.forceSync()
 		cmd = tea.Batch(tea.ClearScreen, syncCmd)
@@ -641,12 +676,18 @@ func (m model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			default:
 				m.focus = panelPARA
 			}
-		case panelInfo, panelRelated, panelBlank:
+		case panelBlank:
+			m, cmd = m.skillsKey(msg)
+		case panelInfo, panelRelated:
 			m.focus = panelPARA
 		case panelPARA:
 			m, cmd = m.paraKey(msg)
 		}
 	case "enter", "right":
+		if m.focus == panelBlank {
+			m, cmd = m.skillsKey(msg)
+			break
+		}
 		if m.focus == panelRelated {
 			m, cmd = m.relatedKey(msg)
 			break
@@ -696,6 +737,8 @@ func (m model) updateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			break
 		}
 		switch m.focus {
+		case panelBlank:
+			m, cmd = m.skillsKey(msg)
 		case panelPARA:
 			m, cmd = m.paraKey(msg)
 		case panelRelated:
@@ -719,6 +762,8 @@ func (m model) paraKey(msg tea.KeyMsg) (model, tea.Cmd) {
 func (m model) bindings() []statusbar.Binding {
 	var local []statusbar.Binding
 	switch m.focus {
+	case panelBlank:
+		local = skillsBindings
 	case panelPARA:
 		local = paraBindings
 	case panelRelated:
@@ -741,6 +786,8 @@ func (m model) View() string {
 	g := m.grid() // one row of the height is the status bar
 	render := func(id panelID, w, h int) string {
 		switch id {
+		case panelBlank:
+			return m.skills.View(w, h, m.focus == id)
 		case panelPARA:
 			return m.para.View(w, h, m.focus == id)
 		case panelRelated:

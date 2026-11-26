@@ -36,6 +36,7 @@ func (m model) openLazygit() (model, tea.Cmd) {
 // checked out files, and reads the git state again for the status bar.
 func (m model) finishLazygit(msg lazygitDoneMsg) (model, tea.Cmd) {
 	m.para = m.para.Reload()
+	m.skills = m.skills.Reload()
 	m = m.refreshLinks()
 	var exitErr *exec.ExitError
 	if msg.err != nil && !errors.As(msg.err, &exitErr) {

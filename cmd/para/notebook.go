@@ -36,6 +36,7 @@ func (m model) withNotebooks(notebooks []config.Notebook, active int, retentionD
 	m.notebooks, m.activeNotebook, m.retentionDays = notebooks, active, retentionDays
 	if active >= 0 && active < len(notebooks) {
 		m.purged[notebooks[active].Path] = true
+		m.skills = m.skills.SetNotebook(m.store, notebooks[active].Path, m.agent)
 	}
 	return m
 }
@@ -46,6 +47,14 @@ func (m model) notebookName() string {
 		return ""
 	}
 	return m.notebooks[m.activeNotebook].Name
+}
+
+// notebookPath is the absolute path of the open notebook, or "" when none.
+func (m model) notebookPath() string {
+	if m.activeNotebook < 0 || m.activeNotebook >= len(m.notebooks) {
+		return ""
+	}
+	return m.notebooks[m.activeNotebook].Path
 }
 
 // openNotebookPicker lists the configured notebooks, the highlight on the
@@ -130,6 +139,7 @@ func (m model) switchNotebook(i int) model {
 	m.session.notebook = nb.Path
 	m = m.loadMarks().restorePosition().resizePanels()
 	m.activeNotebook = i
+	m.skills = m.skills.SetNotebook(m.store, nb.Path, m.agent)
 	m.gitSync = nil
 	m.focus = panelPARA
 	return m.notifyPurge(purged, purgeErr).refreshLinks()

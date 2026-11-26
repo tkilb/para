@@ -87,13 +87,13 @@ Where para keeps its own state (your position in each notebook and the last note
 .para/
 ```
 
-para never edits files other than your notes and `.para-marks`, so it does not add that line for you. Obsidian already hides folders that start with a dot. The one other file para keeps in a notebook is `.para-marks` (your marks, one note uid per line), described under `m` `m`. Positions live outside the notebook.
+para never edits files other than your notes, `.para-marks`, and notebook skills in `.skills/`, so it does not add that line for you. Obsidian already hides folders that start with a dot. The other files para keeps in a notebook are `.para-marks` (your marks, one note uid per line), described under `m` `m`, and `.skills/` (notebook skills and prompts, described under Skills). Unlike `.para/`, `.skills/` is tracked by git and travels with the notebook. Positions live outside the notebook.
 
 ## The screen
 
 | Key | Panel | What it shows |
 | --- | --- | --- |
-| `1` | *(empty)* | A one-line placeholder pane titled `[1]`. |
+| `1` | **Skills** | Notebook skills and prompts: compact at 1 line when unfocused; expands to 7-10 rows with nvim-like scrolloff when focused. |
 | `2` | **PARA** | Five tabs (Inbox, Projects, Areas, Resources, Archives), each a folder browser. Only the selected tab is spelled out. Inside a folder, the first row is its path, with a dividing line under it. |
 | `3` | **Related** | What the selected note references and what references it, from its `related` property. |
 | `0` | **Content** | The selected note's text, with a cursor line. |
@@ -142,6 +142,7 @@ Every long list (the PARA panel, the finders, the text search and the pickers) s
 | `o` | Open the web address in the selected note's `source` in the browser; on an image or an image tab, open the image in the system's preferred viewer |
 | `ctrl+y` | Glossary: fuzzy-pick a term from `glossary.yaml` in the notebook root (listed alphabetically by term, ignoring case, whatever order the file has), a YAML mapping of term to definition (for example `PARA: Projects, Areas, Resources, Archive`). A term with several meanings, such as a three letter acronym, holds a list (`NAM:` then `- National Account Manager` and `- Not Actual Mileage` on indented lines) and shows as one row per meaning; adding a term that exists adds another meaning, and only an identical term and definition is refused. Typing also searches the definitions: a match in the term ranks first, then one in the first line of the definition, then one in the rest of it (whole text, ignoring case). `enter` shows the whole definition; `ctrl+n` adds a term, `ctrl+e` edits the highlighted one and `ctrl+x` deletes it (that meaning only, after a confirmation; `u` does not undo it). A new or edited term opens `$EDITOR` on a short buffer, as lazytask does: a `Term:` line, then `Definition:` with the text after it, which may run over as many lines as you like. Save and quit to store it; an empty definition is stored as blank, a buffer with no term is refused, and an editor that exits with an error cancels the edit. A Definition pane under the list shows the whole wrapped definition of the highlighted term, with the first line break doubled so the first line stands apart. Comments and the order of the other terms in the file are kept. A missing file is an empty glossary, created by the first add; a file that is not a mapping of text or lists of text is left untouched and reported |
 | `ctrl+t` | Append a template to the end of the selected note (choose it in a picker; `u` undoes it) |
+| `ctrl+s` | Summon skills / prompts: choose a notebook skill to run on the selected note (`mode: note`), interactively (`mode: interactive`), or as a custom import (`mode: import`) |
 | `b` / `t` / `T` | Open yesterday's / today's / tomorrow's daily note |
 | `u` / `ctrl+r` | Undo / redo |
 | `ctrl+g` | Open [lazygit](https://github.com/jesseduffield/lazygit) in the open notebook's folder, so a commit needs no `cd`. para hands the terminal over until you quit lazygit, then refreshes from disk and re-reads the git state in the status bar. lazygit must be on your `PATH` |

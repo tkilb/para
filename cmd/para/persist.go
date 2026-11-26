@@ -42,8 +42,10 @@ func (m model) withSession(s session) model {
 		return m.notify(popup.Warning, fmt.Sprintf("Could not restore your last position: %s.", err))
 	}
 	m.para = m.para.Restore(nb)
-	if sess, err := s.db.LoadSession(); err == nil && isPanel(sess.Focus) {
+	if sess, err := s.db.LoadSession(); err == nil && isPanel(sess.Focus) && panelID(sess.Focus) != panelBlank {
 		m.focus = panelID(sess.Focus)
+	} else {
+		m.focus = panelPARA
 	}
 	return m
 }

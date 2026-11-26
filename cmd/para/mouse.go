@@ -116,6 +116,12 @@ func (m model) click(h hit) model {
 	g := m.grid()
 	row := h.y - 1 // the first content row is under the top border
 	switch h.panel {
+	case panelBlank:
+		if m.focus == panelBlank {
+			if i, ok := m.skills.RowAt(row); ok {
+				m.skills = m.skills.SelectRow(i)
+			}
+		}
 	case panelPARA:
 		if h.y == 0 {
 			if i, ok := m.para.TabAt(h.x, g.leftWidth); ok {

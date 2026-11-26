@@ -23,6 +23,7 @@ var helpGlobalBindings = []statusbar.Binding{
 	{Key: "ctrl+v", Label: "paste an image or PDF from the clipboard into the folder PARA shows, as I does with a blank entry; text is not pasted"},
 	{Key: "U", Label: "clip a web page: a title (optional) and a URL; saved in the folder PARA shows"},
 	{Key: "o", Label: "open the web address in the note's source in the browser; on an image, a PDF or an attachment tab, open the file in the system viewer"},
+	{Key: "ctrl+s", Label: "summon notebook skills/prompts to run on the note, interactively or as import"},
 	{Key: "ctrl+t", Label: "append a template to the end of the selected note (u undoes it)"},
 	{Key: "ctrl+y", Label: "glossary: fuzzy-pick a term from glossary.yaml in the notebook root (typing searches the term, then the first line of the definition, then the rest; enter shows it; ctrl+n adds, ctrl+e edits, ctrl+x deletes)"},
 	{Key: "b/t/T", Label: "open yesterday's/today's/tomorrow's daily note"},
@@ -76,6 +77,27 @@ var helpRelatedBindings = []statusbar.Binding{
 	{Key: "esc/←", Label: "back to PARA"},
 }
 
+var helpSkillsBindings = []statusbar.Binding{
+	{Key: "↑/↓", Label: "move (with 3-row scrolloff margin)"},
+	{Key: "enter", Label: "execute the selected skill"},
+	{Key: "gg/G", Label: "first/last skill"},
+	{Key: "ctrl+u/d, pgup/pgdn", Label: "page up/down"},
+	{Key: "space", Label: "select and move down"},
+	{Key: "v/V", Label: "visual select/unselect"},
+	{Key: "ctrl+a", Label: "select all"},
+	{Key: "y/x", Label: "yank/cut skills (survives switching notebooks with B)"},
+	{Key: "Y/X", Label: "cancel yank/cut"},
+	{Key: "p/P", Label: "paste/paste over (yank in same notebook duplicates as _1)"},
+	{Key: "d/D", Label: "trash (u undoes it)/delete permanently"},
+	{Key: "a", Label: "new skill in .skills/ (opens $EDITOR)"},
+	{Key: "r", Label: "rename skill"},
+	{Key: "e", Label: "edit in $EDITOR"},
+	{Key: "c", Label: "copy the full path of the selected skill to the clipboard"},
+	{Key: "/", Label: "search skills"},
+	{Key: "n/N", Label: "next/previous match"},
+	{Key: "esc/←", Label: "leave visual mode, search, selection, or return to PARA"},
+}
+
 var helpContentBindings = []statusbar.Binding{
 	{Key: "↑/↓", Label: "move the cursor line (your place is remembered)"},
 	{Key: "ctrl+d/u", Label: "half page down/up"},
@@ -117,6 +139,8 @@ func (m model) helpSections() []helppopup.Section {
 
 func (m model) helpLocalBindings() []statusbar.Binding {
 	switch m.focus {
+	case panelBlank:
+		return helpSkillsBindings
 	case panelPARA:
 		return helpParaBindings
 	case panelRelated:

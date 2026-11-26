@@ -26,8 +26,9 @@ type input struct {
 	inline   bool
 	cancelOp para.InputOp
 	// accept, when set, handles the text on enter instead of the PARA
-	// panel: for prompts the root model owns.
+	// panel: for prompts the root model owns. cancel, when set, runs on esc.
 	accept func(model, string) (model, tea.Cmd)
+	cancel func(model) (model, tea.Cmd)
 	// hint, when set, describes the text typed so far in a line under the
 	// box; complete, when set, is run by tab to complete the text and lists
 	// the matches. note is the line shown.
@@ -144,6 +145,9 @@ func (m model) typeKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "esc":
 		in := m.input
 		m.input = nil
+		if in.cancel != nil {
+			return in.cancel(m)
+		}
 		if in.cancelOp != 0 {
 			var eff para.Effect
 			m.para, eff = m.para.ApplyInput(in.cancelOp, "")
@@ -174,12 +178,20 @@ func (m model) typeKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // question is a yes/no question owned by the root model.
 type question struct {
 	prompt string
+	danger bool
 	yes    func(model) model
+	yesCmd func(model) (model, tea.Cmd)
 }
 
 // ask opens a question; yes runs when it is accepted.
 func (m model) ask(prompt string, yes func(model) model) model {
 	m.question = &question{prompt: prompt, yes: yes}
+	return m
+}
+
+// askDanger opens a yes/no question (in red when danger is true) whose handler may return a tea.Cmd.
+func (m model) askDanger(prompt string, danger bool, yes func(model) (model, tea.Cmd)) model {
+	m.question = &question{prompt: prompt, danger: danger, yesCmd: yes}
 	return m
 }
 
@@ -190,6 +202,9 @@ func (m model) answerQuestion(key string) (tea.Model, tea.Cmd) {
 	case "y", "enter":
 		q := m.question
 		m.question = nil
+		if q.yesCmd != nil {
+			return q.yesCmd(m)
+		}
 		return q.yes(m), nil
 	case "n", "esc":
 		m.question = nil
@@ -235,6 +250,7 @@ func (m model) runHistory(done, failed string, run func() (string, error)) model
 		m = m.notify(popup.Info, done+": "+desc)
 	}
 	m.para = m.para.Reload()
+	m.skills = m.skills.Reload()
 	return m.refreshLinks()
 }
 
@@ -265,6 +281,8 @@ func (m model) overlayModals(view string) string {
 		view = popup.Overlay(view, m.grep.View(m.width, m.height), m.width, m.height)
 	case m.notefind != nil:
 		view = popup.Overlay(view, m.notefind.View(m.width, m.height), m.width, m.height)
+	case m.question != nil && m.question.danger:
+		view = popup.Overlay(view, popup.DangerConfirmBox(m.question.prompt, m.width), m.width, m.height)
 	case m.question != nil:
 		view = popup.Overlay(view, popup.ConfirmBox(m.question.prompt, m.width), m.width, m.height)
 	case m.input != nil && m.input.inline:
@@ -299,6 +317,9 @@ func (m model) statusLine() string {
 	}
 	if m.importing > 0 {
 		return statusbar.RenderWithBook(m.notebookName(), m.syncState(), []statusbar.Binding{{Key: "…", Label: m.importLabel}})
+	}
+	if m.skillRunning {
+		return statusbar.RenderWithBook(m.notebookName(), m.syncState(), []statusbar.Binding{{Key: "…", Label: m.skillLabel}})
 	}
 	if m.markArmed {
 		return statusbar.RenderWithBook(m.notebookName(), m.syncState(), []statusbar.Binding{{Key: "m", Label: "press m again to mark or unmark the note"}})

@@ -19,7 +19,7 @@ behavior; read them before changing behavior.
 
 Tests cover engine packages only (`internal/store`, `internal/state`,
 `internal/undo`, `internal/config`, `internal/intake`, `internal/cli`,
-`internal/digest`, `internal/loader`, `internal/clip`, `internal/templates`, `internal/imgfmt`, `internal/imgpreview`, `internal/attach`, `internal/marks`, the link index). Use table-driven tests
+`internal/digest`, `internal/loader`, `internal/clip`, `internal/templates`, `internal/imgfmt`, `internal/imgpreview`, `internal/attach`, `internal/marks`, `internal/skills`, the link index). Use table-driven tests
 against temp directories; never touch a real notebook or the real state
 database. UI packages (`cmd/para`, `internal/ui/*`) have no automated
 tests, and no QA note is written for them. This deliberately

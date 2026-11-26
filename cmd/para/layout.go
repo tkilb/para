@@ -11,9 +11,11 @@ const (
 	// infoHeight is the outer height of the Info panel: the three standard
 	// rows plus the border. Other properties scroll.
 	infoHeight = 5
-	// blankHeight is the outer height of the empty [1] pane: one row plus the
+	// blankHeight is the outer height of the [1] pane: one row plus the
 	// border.
 	blankHeight = 3
+	// focusedBlankHeight is the outer height when pane [1] is focused (7-10 rows).
+	focusedBlankHeight = 9
 	// compactHeight is the grid height below which the layout is compact:
 	// only PARA and Content are drawn, each the full height of its column.
 	compactHeight = 24
@@ -56,14 +58,19 @@ func (g grid) zoomed(focus panelID, width, height int) grid {
 	return g
 }
 
-// computeGrid splits width x height into the two-column layout: the empty
-// one-row [1] pane, PARA and Related on the left; Title, Content and Info, top to bottom, on the
-// right. Below compactHeight only PARA and Content are drawn. Related takes about a quarter of the height and Info a fixed five rows, PARA
-// and Content take the rest.
-func computeGrid(width, height int) grid {
+// computeGrid splits width x height into the two-column layout: the [1] pane,
+// PARA and Related on the left; Title, Content and Info, top to bottom, on the
+// right. Below compactHeight only PARA and Content are drawn. Related takes about
+// a quarter of the height and Info a fixed five rows, PARA and Content take the rest.
+// When pane [1] is focused, it expands to focusedBlankHeight.
+func computeGrid(width, height int, focus panelID) grid {
+	bh := blankHeight
+	if focus == panelBlank {
+		bh = focusedBlankHeight
+	}
 	g := grid{
 		leftWidth:   width * leftWidthPercent / 100,
-		blankHeight: blankHeight,
+		blankHeight: bh,
 	}
 	g.rightWidth = width - g.leftWidth
 
@@ -76,6 +83,10 @@ func computeGrid(width, height int) grid {
 
 	side := max(height/4, minSideHeight)
 	g.relatedHeight = side
+	if focus == panelBlank {
+		maxBH := max(height-g.relatedHeight-minSideHeight, blankHeight)
+		g.blankHeight = min(focusedBlankHeight, maxBH)
+	}
 	g.paraHeight = max(height-g.blankHeight-g.relatedHeight, minSideHeight)
 	g.titleHeight = titleHeight
 	g.infoHeight = infoHeight
